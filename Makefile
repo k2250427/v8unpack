@@ -30,20 +30,29 @@ DEP_RELEASE =
 OUT_RELEASE = bin/Release/v8unpack
 
 OBJ_RELEASE = $(OBJDIR_RELEASE)/src/V8File.o $(OBJDIR_RELEASE)/src/main.o
+PREFIX=/usr/local
 
 all: release
 
+install:
+	cp bin/Release/v8unpack $(PREFIX)/v8unpack
+
+uninstall:
+	rm $(PREFIX)/v8unpack
+
 clean: clean_release
 
-before_release: 
+before_release: bin/Release
+
+bin/Release:
 	test -d bin/Release || mkdir -p bin/Release
 	test -d $(OBJDIR_RELEASE)/src || mkdir -p $(OBJDIR_RELEASE)/src
 
 after_release: 
 
-release: before_release out_release after_release
+release: $(OUT_RELEASE) after_release
 
-out_release: before_release $(OBJ_RELEASE) $(DEP_RELEASE)
+$(OUT_RELEASE): bin/Release $(OBJ_RELEASE) $(DEP_RELEASE)
 	$(LD) $(LIBDIR_RELEASE) -o $(OUT_RELEASE) $(OBJ_RELEASE)  $(LDFLAGS_RELEASE) $(LIB_RELEASE) -ldl
 
 $(OBJDIR_RELEASE)/src/V8File.o: src/V8File.cpp
@@ -57,5 +66,5 @@ clean_release:
 	rm -rf bin/Release
 	rm -rf $(OBJDIR_RELEASE)/src
 
-.PHONY: before_release after_release clean_release
+.PHONY: before_release after_release clean_release install uninstall
 
