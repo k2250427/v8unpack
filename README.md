@@ -18,7 +18,7 @@ Windows, POSIX
 
 ## Environment
 
-Project for [codelite IDE](http://www.codelite.org/)  
+Project for [Codelite IDE](http://www.codelite.org/)  
 Project for [Codeblocks IDE](http://codeblocks.org/)
 
 ## Version 3.0
