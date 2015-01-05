@@ -34,6 +34,8 @@
 #include <vector>
 #include <boost/shared_array.hpp>
 
+#include <v8container/v8container.h>
+
 typedef uint32_t UINT;
 typedef uint32_t DWORD;
 typedef uint32_t ULONG;
@@ -88,49 +90,6 @@ public:
 
 	int BuildCfFile(const std::string &dirname, const std::string &filename);
 
-	struct stFileHeader
-	{
-		DWORD next_page_addr;
-		DWORD page_size;
-		DWORD storage_ver;
-		DWORD reserved; // всегда 0x00000000 ?
-
-		static const UINT Size()
-		{
-			return 4 + 4 + 4 + 4;
-		}
-	};
-
-	struct stElemAddr
-	{
-		DWORD elem_header_addr;
-		DWORD elem_data_addr;
-		DWORD fffffff; //всегда 0x7fffffff ?
-
-		static const UINT Size()
-		{
-			return 4 + 4 + 4;
-		}
-
-	};
-
-	struct stBlockHeader
-	{
-		char EOL_0D;
-		char EOL_0A;
-		char data_size_hex[8];
-		char space1;
-		char page_size_hex[8];
-		char space2;
-		char next_page_addr_hex[8];
-		char space3;
-		char EOL2_0D;
-		char EOL2_0A;
-		static const UINT Size()
-		{
-			return 1 + 1 + 8 + 1 + 8 + 1 + 8 + 1 + 1 + 1;
-		};
-	};
 
 	static int Deflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest);
 	static int Inflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest);
@@ -148,9 +107,9 @@ public:
 
 	static DWORD _httoi(const char *value);
 
-	int ReadBlockData(char *pFileData, stBlockHeader *pBlockHeader, char *&pBlockData, UINT *BlockDataSize = NULL);
-	int ReadBlockData(std::basic_ifstream<char> &file, stBlockHeader *pBlockHeader, char *&pBlockData, UINT *BlockDataSize = NULL);
-	int ReadBlockData(std::basic_ifstream<char> &file, stBlockHeader *pBlockHeader, std::basic_ofstream<char> &out, UINT *BlockDataSize = NULL);
+	static int ReadBlockData(char *pFileData, stBlockHeader *pBlockHeader, char *&pBlockData, UINT *BlockDataSize = NULL);
+	static int ReadBlockData(std::basic_ifstream<char> &file, stBlockHeader *pBlockHeader, char *&pBlockData, UINT *BlockDataSize = NULL);
+	static int ReadBlockData(std::basic_ifstream<char> &file, stBlockHeader *pBlockHeader, std::basic_ofstream<char> &out, UINT *BlockDataSize = NULL);
 
 	int PackFromFolder(const std::string &dirname, const std::string &filename);
 
@@ -178,19 +137,6 @@ private:
 class CV8Elem
 {
 public:
-
-	struct stElemHeaderBegin
-	{
-		ULONGLONG date_creation;
-		ULONGLONG date_modification;
-		DWORD res; // всегда 0x000000?
-		//изменяемая длина имени блока
-		//после имени DWORD res; // всегда 0x000000?
-		static const UINT Size()
-		{
-			return 8 + 8 + 4;
-		};
-	};
 
 	CV8Elem(const CV8Elem &src);
 	CV8Elem();

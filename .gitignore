@@ -10,8 +10,8 @@ v8unpack.txt
 *.workspace
 Makefile
 *.mk
-/*.depend
-/*.layout
+*.depend
+*.layout
 /obj
 /bin
 gmon.out

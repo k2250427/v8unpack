@@ -2,29 +2,28 @@
 <CodeBlocks_project_file>
 	<FileVersion major="1" minor="6" />
 	<Project>
-		<Option title="v8unpack" />
+		<Option title="v8container" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="Debug">
-				<Option output="bin/Debug/v8unpack" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Debug/libv8container" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Debug/" />
-				<Option type="1" />
+				<Option type="3" />
 				<Option compiler="gcc" />
-				<Option parameters="-p ./bin/Debug/1Cv8.cf ./bin/Debug/cx" />
+				<Option createDefFile="1" />
+				<Option createStaticLib="1" />
 				<Compiler>
-					<Add option="-pg" />
 					<Add option="-g" />
 				</Compiler>
-				<Linker>
-					<Add option="-pg -lgmon" />
-				</Linker>
 			</Target>
 			<Target title="Release">
-				<Option output="bin/Release/v8unpack" prefix_auto="1" extension_auto="1" />
+				<Option output="bin/Release/libv8container" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Release/" />
-				<Option type="1" />
+				<Option type="3" />
 				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<Option createStaticLib="1" />
 				<Compiler>
 					<Add option="-O2" />
 				</Compiler>
@@ -35,23 +34,15 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
-			<Add directory="." />
+			<Add option="-fexceptions" />
 		</Compiler>
-		<Linker>
-			<Add library="z" />
-			<Add library="boost_filesystem" />
-			<Add library="boost_system" />
-		</Linker>
-		<Unit filename="src/V8File.cpp" />
-		<Unit filename="src/V8File.h" />
-		<Unit filename="src/main.cpp" />
-		<Unit filename="src/version.h" />
-		<Unit filename="src/zconf.h" />
-		<Unit filename="src/zlib.h" />
+		<Unit filename="v8container.cpp" />
+		<Unit filename="v8container.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />
 			<debugger />
+			<lib_finder disable_auto="1" />
 		</Extensions>
 	</Project>
 </CodeBlocks_project_file>
