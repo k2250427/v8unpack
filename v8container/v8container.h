@@ -1,3 +1,6 @@
+/*! \file v8container.h */
+
+
 #ifndef V8CONTAINER_LIB_H
 #define V8CONTAINER_LIB_H
 
@@ -10,6 +13,7 @@
 extern "C" {
 #endif // __cplusplus
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 typedef struct __stFileHeader {
     uint32_t            next_page_addr;
     uint32_t            page_size;
@@ -42,10 +46,14 @@ typedef struct __stElemHeaderBegin {
     uint32_t            res;               // всегда 0x000000?
 } STRICT_MEMORY_SIZE stElemHeaderBegin;
 
+#endif // DOXYGEN_SHOULD_SKIP_THIS
 
 typedef struct __stV8Container V8Container;
 typedef struct __stV8File V8File;
 
+/*! \defgroup V8Container Процедуры для работы с 8-файлом
+  @{
+ */
 /*! Открывает 8-файл для чтения-записи */
 V8Container *
 V8Container_OpenFile(
@@ -121,6 +129,9 @@ V8Container_ExtractFile(
                         const   char                   *filename   /*!< Путь к выходному файлу */
                         );
 
+/*!
+ }@
+*/
 
 #ifdef __cplusplus
 }
