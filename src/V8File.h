@@ -22,9 +22,6 @@
 #pragma once
 #endif // _MSC_VER > 1000*/
 
-#define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
-#define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
-
 #include <assert.h>
 #include <string>
 #include "zlib.h"
@@ -34,15 +31,13 @@
 #include <vector>
 #include <boost/shared_array.hpp>
 
-#include <v8container/v8container.h>
+#include <v8container/V8Raw.h>
 
 typedef uint32_t UINT;
 typedef uint32_t DWORD;
 typedef uint32_t ULONG;
 typedef uint64_t ULONGLONG;
 
-const size_t V8_DEFAULT_PAGE_SIZE = 512;
-const uint32_t V8_FF_SIGNATURE = 0x7fffffff;
 
 #define CHUNK 16384
 #ifndef DEF_MEM_LEVEL
@@ -104,12 +99,6 @@ public:
 	int UnpackToDirectoryNoLoad(const std::string &directory, std::basic_ifstream<char> &file, ULONG FileData, bool boolInflate = true, bool UnpackWhenNeed = false);
 
 	int UnpackToFolder(const std::string &filename, const std::string &dirname, char *block_name = NULL, bool print_progress = false);
-
-	static DWORD _httoi(const char *value);
-
-	static int ReadBlockData(char *pFileData, stBlockHeader *pBlockHeader, char *&pBlockData, UINT *BlockDataSize = NULL);
-	static int ReadBlockData(std::basic_ifstream<char> &file, stBlockHeader *pBlockHeader, char *&pBlockData, UINT *BlockDataSize = NULL);
-	static int ReadBlockData(std::basic_ifstream<char> &file, stBlockHeader *pBlockHeader, std::basic_ofstream<char> &out, UINT *BlockDataSize = NULL);
 
 	int PackFromFolder(const std::string &dirname, const std::string &filename);
 

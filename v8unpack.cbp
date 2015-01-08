@@ -17,7 +17,8 @@
 					<Add option="-g" />
 				</Compiler>
 				<Linker>
-					<Add option="-pg -lgmon" />
+					<Add option="-pg" />
+					<Add directory="./bin/Debug" />
 				</Linker>
 			</Target>
 			<Target title="Release">
@@ -30,6 +31,7 @@
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add directory="./bin/Release" />
 				</Linker>
 			</Target>
 		</Build>
@@ -41,6 +43,7 @@
 			<Add library="z" />
 			<Add library="boost_filesystem" />
 			<Add library="boost_system" />
+			<Add library="v8container" />
 		</Linker>
 		<Unit filename="src/V8File.cpp" />
 		<Unit filename="src/V8File.h" />
