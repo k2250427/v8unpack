@@ -13,11 +13,9 @@
 				<Option compiler="gcc" />
 				<Option parameters="--pack ./bin/Debug/un  ./bin/Debug/1Cv82.cf" />
 				<Compiler>
-					<Add option="-pg" />
 					<Add option="-g" />
 				</Compiler>
 				<Linker>
-					<Add option="-pg" />
 					<Add directory="./bin/Debug" />
 				</Linker>
 			</Target>

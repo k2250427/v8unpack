@@ -867,65 +867,6 @@ int CV8File::LoadFileFromFolder(const std::string &dirname)
 
 }
 
-int CV8File::SaveFile(const std::string &filename)
-{
-    boost::filesystem::ofstream file_out(filename, std::ios_base::binary);
-    if (!file_out) {
-        std::cerr << "SaveFile. Error in creating file!" << std::endl;
-        return -1;
-    }
-
-    // Создаем и заполняем данные по адресам элементов
-    ElemsAddrs.clear();
-
-    UINT ElemsNum = Elems.size();
-    ElemsAddrs.reserve(ElemsNum);
-
-    DWORD cur_block_addr = sizeof(stFileHeader) + sizeof(stBlockHeader);
-    if (sizeof(stElemAddr) * ElemsNum < V8Raw::V8_DEFAULT_PAGE_SIZE)
-        cur_block_addr += V8Raw::V8_DEFAULT_PAGE_SIZE;
-    else
-        cur_block_addr += sizeof(stElemAddr) * ElemsNum;
-
-    std::vector<CV8Elem>::const_iterator elem;
-    for (elem = Elems.begin(); elem != Elems.end(); ++elem) {
-
-        stElemAddr addr;
-
-        addr.elem_header_addr = cur_block_addr;
-        cur_block_addr += sizeof(stBlockHeader) + elem->HeaderSize;
-
-        addr.elem_data_addr = cur_block_addr;
-        cur_block_addr += sizeof(stBlockHeader);
-
-        if (elem->DataSize > V8Raw::V8_DEFAULT_PAGE_SIZE)
-            cur_block_addr += elem->DataSize;
-        else
-            cur_block_addr += V8Raw::V8_DEFAULT_PAGE_SIZE;
-
-        addr.fffffff = V8Raw::V8_FF_SIGNATURE;
-
-        ElemsAddrs.push_back(addr);
-
-    }
-
-
-    // записываем заголовок
-    file_out.write(reinterpret_cast<char*>(&FileHeader), sizeof(FileHeader));
-
-    // записываем адреса элементов
-    V8Raw::SaveBlockData(file_out, (char*) ElemsAddrs.data(), sizeof(stElemAddr) * ElemsNum);
-
-    // записываем элементы (заголовок и данные)
-    for (elem = Elems.begin(); elem != Elems.end(); ++elem) {
-        V8Raw::SaveBlockData(file_out, elem->pHeader, elem->HeaderSize, elem->HeaderSize);
-        V8Raw::SaveBlockData(file_out, elem->pData, elem->DataSize);
-    }
-
-    return 0;
-
-}
-
 int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_filename)
 {
     //filename can't be empty

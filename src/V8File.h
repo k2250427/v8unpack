@@ -67,12 +67,13 @@ typedef uint64_t ULONGLONG;
 
 class CV8Elem;
 
+#define DEPRECATED __attribute__((__deprecated__))
+
 class CV8File
 {
 public:
 	int SaveBlockDataToBuffer(char** Buffer, const char* pBlockData, UINT BlockDataSize, UINT PageSize = 512) const;
 	int GetData(char **DataBufer, ULONG *DataBuferSize) const;
-	int SaveFile(const std::string &filename);
 	static int SetElemName(CV8Elem &Elem, const char *ElemName, UINT ElemNameLen);
 	int LoadFileFromFolder(const std::string &dirname);
 	static int GetElemName(const CV8Elem &Elem, char* ElemName, UINT *ElemNameLen);
