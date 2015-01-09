@@ -12,24 +12,11 @@ LD = g++
 WINDRES = 
 
 INC = 
-CFLAGS = -Wall -fexceptions
+CFLAGS = -Wall -fexceptions -fpic
 RESINC = 
 LIBDIR = 
 LIB = 
 LDFLAGS = 
-
-INC_DEBUG = $(INC)
-CFLAGS_DEBUG = $(CFLAGS) -g
-RESINC_DEBUG = $(RESINC)
-RCFLAGS_DEBUG = $(RCFLAGS)
-LIBDIR_DEBUG = $(LIBDIR)
-LIB_DEBUG = $(LIB) 
-LDFLAGS_DEBUG = $(LDFLAGS)
-OBJDIR_DEBUG = obj/Debug
-DEP_DEBUG = 
-DEF_DEBUG = bin/Debug/libv8container.def
-SHAREDINT_DEBUG = bin/Debug/libv8container.a
-OUT_DEBUG = bin/Debug/libv8container.so
 
 INC_RELEASE = $(INC)
 CFLAGS_RELEASE = $(CFLAGS) -O2
@@ -40,59 +27,38 @@ LIB_RELEASE = $(LIB)
 LDFLAGS_RELEASE = $(LDFLAGS) -s
 OBJDIR_RELEASE = obj/Release
 DEP_RELEASE = 
-DEF_RELEASE = bin/Release/libv8container.def
-SHAREDINT_RELEASE = bin/Release/libv8container.a
-OUT_RELEASE = bin/Release/libv8container.so
+DEF_RELEASE = ../bin/Release/libv8container.def
+SHAREDINT_RELEASE = ../bin/Release/libv8container.a
+OUT_RELEASE = ../bin/Release/libv8container.so
 
-OBJ_DEBUG = $(OBJDIR_DEBUG)/v8container.o
+OBJ_RELEASE = $(OBJDIR_RELEASE)/v8container.o $(OBJDIR_RELEASE)/V8Raw.o
 
-OBJ_RELEASE = $(OBJDIR_RELEASE)/v8container.o
-
-all: debug release
+all: release
 
 dox:
-	# doxygen >/dev/null 2>/dev/null
 	doxygen
 
-clean: clean_debug clean_release
-
-before_debug: 
-	test -d bin/Debug || mkdir -p bin/Debug
-	test -d $(OBJDIR_DEBUG) || mkdir -p $(OBJDIR_DEBUG)
-
-after_debug: 
-
-debug: before_debug out_debug after_debug
-
-out_debug: before_debug $(OBJ_DEBUG) $(DEP_DEBUG)
-	$(LD) -shared $(LIBDIR_DEBUG) $(OBJ_DEBUG)  -o $(OUT_DEBUG) $(LDFLAGS_DEBUG) $(LIB_DEBUG)
-
-$(OBJDIR_DEBUG)/v8container.o: v8container.cpp
-	$(CXX) $(CFLAGS_DEBUG) $(INC_DEBUG) -c v8container.cpp -o $(OBJDIR_DEBUG)/v8container.o
-
-clean_debug: 
-	rm -f $(OBJ_DEBUG) $(OUT_DEBUG)
-	rm -rf bin/Debug
-	rm -rf $(OBJDIR_DEBUG)
+clean: clean_release
 
 before_release: 
 	test -d bin/Release || mkdir -p bin/Release
 	test -d $(OBJDIR_RELEASE) || mkdir -p $(OBJDIR_RELEASE)
 
-after_release: 
+release: $(OUT_RELEASE)
 
-release: before_release out_release after_release
-
-out_release: before_release $(OBJ_RELEASE) $(DEP_RELEASE)
+$(OUT_RELEASE): before_release $(OBJ_RELEASE) $(DEP_RELEASE)
 	$(LD) -shared $(LIBDIR_RELEASE) $(OBJ_RELEASE)  -o $(OUT_RELEASE) $(LDFLAGS_RELEASE) $(LIB_RELEASE)
 
 $(OBJDIR_RELEASE)/v8container.o: v8container.cpp
 	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c v8container.cpp -o $(OBJDIR_RELEASE)/v8container.o
+
+$(OBJDIR_RELEASE)/V8Raw.o: V8Raw.cpp
+	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c V8Raw.cpp -o $(OBJDIR_RELEASE)/V8Raw.o
 
 clean_release: 
 	rm -f $(OBJ_RELEASE) $(OUT_RELEASE)
 	rm -rf bin/Release
 	rm -rf $(OBJDIR_RELEASE)
 
-.PHONY: before_debug after_debug clean_debug before_release after_release clean_release dox
+.PHONY: before_release release clean_release dox
 

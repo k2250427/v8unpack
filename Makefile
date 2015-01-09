@@ -11,18 +11,20 @@ AR = ar
 LD = g++
 WINDRES = 
 
-INC = 
+INC = -I.
 CFLAGS = -Wall
 RESINC = 
 LIBDIR = 
-LIB = -lz -lboost_filesystem -lboost_system
+LIB = -lz -lboost_filesystem -lboost_system -lv8container
 LDFLAGS = 
+
+V8CONTAINER_DIR_RELEASE = bin/Release
 
 INC_RELEASE = $(INC)
 CFLAGS_RELEASE = $(CFLAGS) -O2
 RESINC_RELEASE = $(RESINC)
 RCFLAGS_RELEASE = $(RCFLAGS)
-LIBDIR_RELEASE = $(LIBDIR)
+LIBDIR_RELEASE = $(LIBDIR) -L$(V8CONTAINER_DIR_RELEASE)
 LIB_RELEASE = $(LIB) 
 LDFLAGS_RELEASE = $(LDFLAGS) -s
 OBJDIR_RELEASE = obj/Release
@@ -30,15 +32,22 @@ DEP_RELEASE =
 OUT_RELEASE = bin/Release/v8unpack
 
 OBJ_RELEASE = $(OBJDIR_RELEASE)/src/V8File.o $(OBJDIR_RELEASE)/src/main.o
-PREFIX=/usr/local
+PREFIX=/usr
+INSTALL_BIN=$(PREFIX)/bin
+INSTALL_LIB=$(PREFIX)/lib
 
-all: release
+all: v8container release
+
+v8container: 
+	$(MAKE) --directory=v8container release
 
 install:
-	cp bin/Release/v8unpack $(PREFIX)/v8unpack
+	cp bin/Release/libv8container.so $(INSTALL_LIB)/libv8container.so
+	cp bin/Release/v8unpack $(INSTALL_BIN)/v8unpack
 
 uninstall:
-	rm $(PREFIX)/v8unpack
+	rm $(INSTALL_BIN)/v8unpack
+	rm $(INSTALL_LIB)/libv8container.so
 
 clean: clean_release
 
@@ -66,5 +75,5 @@ clean_release:
 	rm -rf bin/Release
 	rm -rf $(OBJDIR_RELEASE)/src
 
-.PHONY: before_release after_release clean_release install uninstall
+.PHONY: before_release after_release clean_release install uninstall v8container
 
