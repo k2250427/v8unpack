@@ -56,11 +56,11 @@ CV8Elem::CV8Elem(const CV8Elem &src)
 { }
 
 CV8Elem::CV8Elem()
+    : pHeader(NULL), HeaderSize(0),
+      pData(NULL), DataSize(0),
+      IsV8File(false),
+      NeedUnpack(false)
 {
-
-    IsV8File = false;
-    HeaderSize = 0;
-    DataSize = 0;
 }
 
 CV8Elem::~CV8Elem()
@@ -68,7 +68,18 @@ CV8Elem::~CV8Elem()
     // TODO: Добавить удаление данных
 }
 
+void CV8Elem::Free()
+{
+    if (pHeader) {
+        delete [] pHeader;
+        pHeader = NULL;
+    }
 
+    if (pData) {
+        delete [] pData;
+        pData = NULL;
+    }
+}
 
 int CV8File::Inflate(const std::string &in_filename, const std::string &out_filename)
 {
@@ -355,7 +366,7 @@ int CV8File::Deflate(const char* in_buf, char** out_buf, ULONG in_len, ULONG* ou
 
 }
 
-int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_ifstream<char> &file, ULONG FileDataSize, bool boolInflate, bool UnpackWhenNeed)
+int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_ifstream<char> &file, bool boolInflate, bool UnpackWhenNeed)
 {
     int ret = 0;
 
@@ -368,7 +379,12 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
         }
     }
 
-    file.read((char*)&FileHeader, sizeof(FileHeader));
+	stFileHeader	            FileHeader;
+	std::vector<stElemAddr>     ElemsAddrs;
+	std::vector<CV8Elem>        Elems;
+	bool			            IsDataPacked;
+
+	file.read((char*)&FileHeader, sizeof(FileHeader));
 
     stBlockHeader BlockHeader;
     stBlockHeader *pBlockHeader = &BlockHeader;
@@ -495,7 +511,11 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
             ret = 0;
         }
 
+        elem.Free();
+
     } // for i = ..ElemsNum
+
+    delete [] pElemsAddrs;
 
     if (boost::filesystem::exists(p_dir / ".v8unpack.inf"))
         boost::filesystem::remove(p_dir / ".v8unpack.inf");
@@ -518,11 +538,7 @@ int CV8File::UnpackToFolder(const std::string &filename_in, const std::string &d
         return -1;
     }
 
-    file_in.seekg(0, std::ios_base::end);
-    ULONG FileDataSize = file_in.tellg();
-    file_in.seekg(0, std::ios_base::beg);
-
-    ret = UnpackToDirectoryNoLoad(dirname, file_in, FileDataSize, false, false);
+    ret = UnpackToDirectoryNoLoad(dirname, file_in, false, false);
 
     if (ret == V8UNPACK_NOT_V8_FILE) {
         std::cerr << "UnpackToFolder. This is not V8 file!" << std::endl;
@@ -576,22 +592,78 @@ int CV8File::PackFromFolder(const std::string &dirname, const std::string &filen
     filename += "/FileHeader";
 
     boost::filesystem::path path_header(filename);
+
+    boost::filesystem::ofstream file_out(filename_out, std::ios_base::binary);
+    if (!file_out) {
+        std::cerr << "PackFromFolder. Error in creating file!" << std::endl;
+        return -1;
+    }
+
+
     boost::filesystem::ifstream file_in(path_header, std::ios_base::binary);
+    if (!file_in) {
 
-    file_in.seekg(0, std::ios_base::end);
-    size_t filesize = file_in.tellg();
-    file_in.seekg(0, std::ios_base::beg);
+        // Создаём заголовок по-умолчанию
+        FileHeader.next_page_addr = V8Raw::V8_FF_SIGNATURE;
+        FileHeader.page_size = V8Raw::V8_DEFAULT_PAGE_SIZE;
+        FileHeader.storage_ver = 0;
+        FileHeader.reserved = 0;
 
-    file_in.read((char *)&FileHeader, filesize);
-    file_in.close();
+    } else {
+
+        file_in.seekg(0, std::ios_base::end);
+        size_t filesize = file_in.tellg();
+        file_in.seekg(0, std::ios_base::beg);
+
+        file_in.read((char *)&FileHeader, filesize);
+        file_in.close();
+    }
+
 
     boost::filesystem::directory_iterator d_end;
-    boost::filesystem::directory_iterator it(p_curdir);
 
     Elems.clear();
 
+    unsigned ElemsNum = 0;
+    // Высчитываем количество файлов
+    {
+        boost::filesystem::directory_iterator dit(p_curdir);
+
+        if (dit == d_end) {
+            std::cerr << "Build error. Directory `" << p_curdir << "` is empty.";
+            return -1;
+        }
+
+        for (; dit != d_end; ++dit) {
+
+            boost::filesystem::path current_file(dit->path());
+            std::string name = current_file.filename().string();
+
+            if (name.at(0) == '.')
+                continue;
+
+            ++ElemsNum;
+        }
+    }
+
+    uint32_t cur_block_addr = sizeof(stFileHeader) + sizeof(stBlockHeader);
+    stElemAddr *pTOC;
+    pTOC = new stElemAddr[ElemsNum];
+    if (sizeof(stElemAddr) * ElemsNum < V8Raw::V8_DEFAULT_PAGE_SIZE)
+        cur_block_addr += V8Raw::V8_DEFAULT_PAGE_SIZE;
+    else
+        cur_block_addr += sizeof(stElemAddr) * ElemsNum;
+
+    //Резервируем место в начале файла под заголовок и TOC
+    for(unsigned i=0; i < cur_block_addr; i++) {
+        file_out << '\0';
+    }
+
+    unsigned ElemNum = 0;
+    boost::filesystem::directory_iterator it(p_curdir);
     for (; it != d_end; it++) {
         boost::filesystem::path current_file(it->path());
+        CV8Elem elem;
         if (current_file.extension().string() == ".header") {
 
             filename = dirname;
@@ -621,13 +693,14 @@ int CV8File::PackFromFolder(const std::string &dirname, const std::string &filen
                 file_in.read((char *)elem.pData, elem.DataSize);
             }
 
-            Elems.push_back(elem);
+            V8Raw::SaveBlockData(file_out, elem.pHeader, elem.HeaderSize, elem.HeaderSize);
+            V8Raw::SaveBlockData(file_out, elem.pData, elem.DataSize);
+
 
         } else
         if (current_file.extension().string() != ".data") {
 
             /* Какие-то файлы в корнѣ */
-            CV8Elem elem;
             {
                 boost::filesystem::ifstream file_in(current_file, std::ios_base::binary);
                 file_in.seekg(0, std::ios_base::end);
@@ -646,11 +719,44 @@ int CV8File::PackFromFolder(const std::string &dirname, const std::string &filen
 
                 SetElemName(elem, name.c_str(), name.size());
             }
-            Elems.push_back(elem);
-       }
+            V8Raw::SaveBlockData(file_out, elem.pHeader, elem.HeaderSize, elem.HeaderSize);
+            V8Raw::SaveBlockData(file_out, elem.pData, elem.DataSize);
+       } else
+            continue;
+
+        //Добавляем элемент в TOC
+        pTOC[ElemNum].elem_header_addr = cur_block_addr;
+        cur_block_addr += sizeof(stBlockHeader) + elem.HeaderSize;
+        pTOC[ElemNum].elem_data_addr = cur_block_addr;
+        cur_block_addr += sizeof(stBlockHeader);
+        if (elem.DataSize > V8Raw::V8_DEFAULT_PAGE_SIZE)
+            cur_block_addr += elem.DataSize;
+        else
+            cur_block_addr += V8Raw::V8_DEFAULT_PAGE_SIZE;
+
+        pTOC[ElemNum].fffffff = V8Raw::V8_FF_SIGNATURE;
+
+        delete[] elem.pData;
+        elem.pData = NULL;
+        delete[] elem.pHeader;
+        elem.pHeader = NULL;
+        elem.IsV8File = false;
+        elem.HeaderSize = 0;
+        elem.DataSize = 0;
+
+       ++ElemNum;
     } // for it
 
-    SaveFile(filename_out);
+    //Записывем заголовок файла
+    file_out.seekp(0, std::ios_base::beg);
+
+    // записываем заголовок
+    file_out.write(reinterpret_cast<char*>(&FileHeader), sizeof(FileHeader));
+
+    //Записываем блок TOC
+    V8Raw::SaveBlockData(file_out, (const char*) pTOC, sizeof(stElemAddr) * ElemsNum);
+
+    delete [] pTOC;
 
     return 0;
 }
@@ -677,7 +783,7 @@ int CV8File::Parse(const std::string &filename_in, const std::string &dirname, i
     return ret;
 }
 
-int CV8File::GetElemName(const CV8Elem &Elem, char *ElemName, UINT *ElemNameLen) const
+int CV8File::GetElemName(const CV8Elem &Elem, char *ElemName, UINT *ElemNameLen)
 {
     *ElemNameLen = (Elem.HeaderSize - sizeof(stElemHeaderBegin)) / 2;
     for (UINT j = 0; j < *ElemNameLen * 2; j+=2)

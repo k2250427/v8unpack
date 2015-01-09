@@ -87,4 +87,30 @@ _httoi8(const char *value)
     return result;
 }
 
+
+void
+PrepareBlockHeader(stBlockHeader *Header, uint32_t BlockDataSize, uint32_t PageSize, uint32_t next_addr)
+{
+    Header->EOL_0D = 0xd;
+    Header->EOL_0A = 0xa;
+    Header->EOL2_0D = 0xd;
+    Header->EOL2_0A = 0xa;
+
+    char buf[20];
+
+    sprintf(buf, "%08x", BlockDataSize);
+    strncpy(Header->data_size_hex, buf, 8);
+
+    sprintf(buf, "%08x", PageSize);
+    strncpy(Header->page_size_hex, buf, 8);
+
+    sprintf(buf, "%08x", next_addr);
+    strncpy(Header->next_page_addr_hex, buf, 8);
+
+    Header->space1 = ' ';
+    Header->space2 = ' ';
+    Header->space3 = ' ';
+
+}
+
 }

@@ -73,9 +73,9 @@ public:
 	int SaveBlockDataToBuffer(char** Buffer, const char* pBlockData, UINT BlockDataSize, UINT PageSize = 512) const;
 	int GetData(char **DataBufer, ULONG *DataBuferSize) const;
 	int SaveFile(const std::string &filename);
-	int SetElemName(CV8Elem &Elem, const char *ElemName, UINT ElemNameLen);
+	static int SetElemName(CV8Elem &Elem, const char *ElemName, UINT ElemNameLen);
 	int LoadFileFromFolder(const std::string &dirname);
-	int GetElemName(const CV8Elem &Elem, char* ElemName, UINT *ElemNameLen) const;
+	static int GetElemName(const CV8Elem &Elem, char* ElemName, UINT *ElemNameLen);
 	int Parse(const std::string &filename, const std::string &dirname, int level = 0);
 
 	static bool IsV8File(std::basic_ifstream<char> &file);
@@ -92,9 +92,9 @@ public:
 	static int Deflate(const char* in_buf, char** out_buf, ULONG in_len, ULONG* out_len);
 	static int Inflate(const char* in_buf, char** out_buf, ULONG in_len, ULONG* out_len);
 
-	int UnpackToDirectoryNoLoad(const std::string &directory, std::basic_ifstream<char> &file, ULONG FileData, bool boolInflate = true, bool UnpackWhenNeed = false);
+	static int UnpackToDirectoryNoLoad(const std::string &directory, std::basic_ifstream<char> &file, bool boolInflate = true, bool UnpackWhenNeed = false);
 
-	int UnpackToFolder(const std::string &filename, const std::string &dirname, char *block_name = NULL, bool print_progress = false);
+	static int UnpackToFolder(const std::string &filename, const std::string &dirname, char *block_name = NULL, bool print_progress = false);
 
 	int PackFromFolder(const std::string &dirname, const std::string &filename);
 
@@ -122,6 +122,8 @@ public:
 	CV8Elem(const CV8Elem &src);
 	CV8Elem();
 	~CV8Elem();
+
+	void Free();
 
 	char	           *pHeader; // TODO: Утечка памяти
 	UINT	            HeaderSize;
