@@ -72,7 +72,7 @@ class CV8File
 public:
 	int SaveBlockDataToBuffer(char** Buffer, const char* pBlockData, UINT BlockDataSize, UINT PageSize = 512) const;
 	int GetData(char **DataBufer, ULONG *DataBuferSize) const;
-	int SaveFile(const std::string &filename) __attribute__((__deprecated__));
+	int SaveFile(const std::string &filename);
 	int SetElemName(CV8Elem &Elem, const char *ElemName, UINT ElemNameLen);
 	int LoadFileFromFolder(const std::string &dirname);
 	int GetElemName(const CV8Elem &Elem, char* ElemName, UINT *ElemNameLen) const;
@@ -97,8 +97,6 @@ public:
 	int UnpackToFolder(const std::string &filename, const std::string &dirname, char *block_name = NULL, bool print_progress = false);
 
 	int PackFromFolder(const std::string &dirname, const std::string &filename);
-
-	int SaveBlockData(std::basic_ofstream<char> &file_out, const char *pBlockData, UINT BlockDataSize, UINT PageSize = 512);
 
 	static int PackElem(CV8Elem &pElem);
 

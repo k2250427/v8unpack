@@ -623,55 +623,34 @@ int CV8File::PackFromFolder(const std::string &dirname, const std::string &filen
 
             Elems.push_back(elem);
 
-        }
+        } else
+        if (current_file.extension().string() != ".data") {
+
+            /* Какие-то файлы в корнѣ */
+            CV8Elem elem;
+            {
+                boost::filesystem::ifstream file_in(current_file, std::ios_base::binary);
+                file_in.seekg(0, std::ios_base::end);
+                elem.DataSize = file_in.tellg();
+                file_in.seekg(0, std::ios_base::beg);
+                elem.pData = new char[elem.DataSize];
+
+                file_in.read((char *)elem.pData, elem.DataSize);
+
+                std::string name = current_file.filename().string();
+
+                elem.HeaderSize = sizeof(stElemHeaderBegin) + (name.size() + 1) * 2;
+                elem.pHeader = new char[elem.HeaderSize];
+
+                memset(elem.pHeader, 0, elem.HeaderSize);
+
+                SetElemName(elem, name.c_str(), name.size());
+            }
+            Elems.push_back(elem);
+       }
     } // for it
 
     SaveFile(filename_out);
-
-    return 0;
-}
-
-
-int CV8File::SaveBlockData(std::basic_ofstream<char> &file_out, const char *pBlockData, UINT BlockDataSize, UINT PageSize)
-{
-
-    if (PageSize < BlockDataSize)
-        PageSize = BlockDataSize;
-
-    stBlockHeader CurBlockHeader;
-
-    CurBlockHeader.EOL_0D = 0xd;
-    CurBlockHeader.EOL_0A = 0xa;
-    CurBlockHeader.EOL2_0D = 0xd;
-    CurBlockHeader.EOL2_0A = 0xa;
-
-    CurBlockHeader.space1 = 0;
-    CurBlockHeader.space2 = 0;
-    CurBlockHeader.space3 = 0;
-
-    char buf[20];
-
-    sprintf(buf, "%08x", BlockDataSize);
-    strncpy(CurBlockHeader.data_size_hex, buf, 8);
-
-    sprintf(buf, "%08x", PageSize);
-    strncpy(CurBlockHeader.page_size_hex, buf, 8);
-
-    sprintf(buf, "%08x", V8Raw::V8_FF_SIGNATURE);
-    strncpy(CurBlockHeader.next_page_addr_hex, buf, 8);
-
-    CurBlockHeader.space1 = ' ';
-    CurBlockHeader.space2 = ' ';
-    CurBlockHeader.space3 = ' ';
-
-    file_out.write(reinterpret_cast<char *>(&CurBlockHeader), sizeof(CurBlockHeader));
-
-    file_out.write(reinterpret_cast<const char *>(pBlockData), BlockDataSize);
-
-    char N = 0;
-    for(UINT i = 0; i < PageSize - BlockDataSize; i++) {
-        file_out.write(&N, 1);
-    }
 
     return 0;
 }
@@ -747,7 +726,7 @@ int CV8File::LoadFileFromFolder(const std::string &dirname)
         CV8Elem elem;
         std::string name = current_file.filename().string();
 
-        elem.HeaderSize = sizeof(stElemHeaderBegin) + name.size() * 2 + 4; // последние четыре всегда нули?
+        elem.HeaderSize = sizeof(stElemHeaderBegin) + (name.size() + 2) * 2;
         elem.pHeader = new char[elem.HeaderSize];
 
         memset(elem.pHeader, 0, elem.HeaderSize);
@@ -829,12 +808,12 @@ int CV8File::SaveFile(const std::string &filename)
     file_out.write(reinterpret_cast<char*>(&FileHeader), sizeof(FileHeader));
 
     // записываем адреса элементов
-    SaveBlockData(file_out, (char*) ElemsAddrs.data(), sizeof(stElemAddr) * ElemsNum);
+    V8Raw::SaveBlockData(file_out, (char*) ElemsAddrs.data(), sizeof(stElemAddr) * ElemsNum);
 
     // записываем элементы (заголовок и данные)
     for (elem = Elems.begin(); elem != Elems.end(); ++elem) {
-        SaveBlockData(file_out, elem->pHeader, elem->HeaderSize, elem->HeaderSize);
-        SaveBlockData(file_out, elem->pData, elem->DataSize);
+        V8Raw::SaveBlockData(file_out, elem->pHeader, elem->HeaderSize, elem->HeaderSize);
+        V8Raw::SaveBlockData(file_out, elem->pData, elem->DataSize);
     }
 
     return 0;
@@ -936,7 +915,7 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
 
         CV8Elem pElem;
 
-        pElem.HeaderSize = sizeof(stElemHeaderBegin) + name.size() * 2 + 4; // последние четыре всегда нули?
+        pElem.HeaderSize = sizeof(stElemHeaderBegin) + (name.size() + 2) * 2;
         pElem.pHeader = new char[pElem.HeaderSize];
 
         memset(pElem.pHeader, 0, pElem.HeaderSize);
@@ -978,8 +957,8 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
             cur_block_addr += V8Raw::V8_DEFAULT_PAGE_SIZE;
         pTOC[ElemNum].fffffff = V8Raw::V8_FF_SIGNATURE;
         //Записываем элемент в файл
-        SaveBlockData(file_out, pElem.pHeader, pElem.HeaderSize, pElem.HeaderSize);
-        SaveBlockData(file_out, pElem.pData, pElem.DataSize);
+        V8Raw::SaveBlockData(file_out, pElem.pHeader, pElem.HeaderSize, pElem.HeaderSize);
+        V8Raw::SaveBlockData(file_out, pElem.pData, pElem.DataSize);
         //Освобождаем память
         delete[] pElem.pData;
         pElem.pData = NULL;
@@ -996,7 +975,7 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
     file_out.write(reinterpret_cast<const char*>(&FileHeader), sizeof(FileHeader));
 
     //Записываем блок TOC
-    SaveBlockData(file_out, (const char*) pTOC, sizeof(stElemAddr) * ElemsNum);
+    V8Raw::SaveBlockData(file_out, (const char*) pTOC, sizeof(stElemAddr) * ElemsNum);
 
     delete [] pTOC;
 

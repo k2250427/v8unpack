@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <stdint.h>
+#include <string.h>
 
 /* Не забываем, что у нас GCC */
 #define STRICT_MEMORY_SIZE __attribute__((packed))
@@ -143,7 +144,49 @@ int ReadBlockData(StreamType &f, const stBlockHeader *pStartBlockHeader, char **
     return ReadBlockData(f, pStartBlockHeader, mout, data_size);
 }
 
+template<class OutputStreamType>
+int SaveBlockData(OutputStreamType &file_out, const char *pBlockData, unsigned BlockDataSize, unsigned PageSize = 512)
+{
 
+    if (PageSize < BlockDataSize)
+        PageSize = BlockDataSize;
+
+    stBlockHeader CurBlockHeader;
+
+    CurBlockHeader.EOL_0D = 0xd;
+    CurBlockHeader.EOL_0A = 0xa;
+    CurBlockHeader.EOL2_0D = 0xd;
+    CurBlockHeader.EOL2_0A = 0xa;
+
+    CurBlockHeader.space1 = 0;
+    CurBlockHeader.space2 = 0;
+    CurBlockHeader.space3 = 0;
+
+    char buf[20];
+
+    sprintf(buf, "%08x", BlockDataSize);
+    strncpy(CurBlockHeader.data_size_hex, buf, 8);
+
+    sprintf(buf, "%08x", PageSize);
+    strncpy(CurBlockHeader.page_size_hex, buf, 8);
+
+    sprintf(buf, "%08x", V8Raw::V8_FF_SIGNATURE);
+    strncpy(CurBlockHeader.next_page_addr_hex, buf, 8);
+
+    CurBlockHeader.space1 = ' ';
+    CurBlockHeader.space2 = ' ';
+    CurBlockHeader.space3 = ' ';
+
+    file_out.write(reinterpret_cast<char *>(&CurBlockHeader), sizeof(CurBlockHeader));
+
+    file_out.write(reinterpret_cast<const char *>(pBlockData), BlockDataSize);
+
+    for(unsigned i = 0; i < PageSize - BlockDataSize; i++) {
+        file_out << '\0';
+    }
+
+    return 0;
+}
 
 }
 
