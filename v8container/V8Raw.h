@@ -88,8 +88,6 @@ private:
     size_t              last_read;
 };
 
-int ReadBlockData(char *pFileData, const stBlockHeader *pStartBlockHeader, char **out, uint32_t *data_size);
-
 template<class InputStreamType, class OutputStreamType>
 int ReadBlockData(InputStreamType &f, const stBlockHeader *pStartBlockHeader, OutputStreamType &out, uint32_t *data_size)
 {

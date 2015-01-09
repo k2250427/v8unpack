@@ -72,15 +72,12 @@ class CV8File
 public:
 	int SaveBlockDataToBuffer(char** Buffer, const char* pBlockData, UINT BlockDataSize, UINT PageSize = 512) const;
 	int GetData(char **DataBufer, ULONG *DataBuferSize) const;
-	int Pack();
-	int SaveFile(const std::string &filename);
+	int SaveFile(const std::string &filename) __attribute__((__deprecated__));
 	int SetElemName(CV8Elem &Elem, const char *ElemName, UINT ElemNameLen);
-	int Build(const std::string &dirname, const std::string &filename, int level = 0);
 	int LoadFileFromFolder(const std::string &dirname);
 	int GetElemName(const CV8Elem &Elem, char* ElemName, UINT *ElemNameLen) const;
 	int Parse(const std::string &filename, const std::string &dirname, int level = 0);
 
-	static bool IsV8File(const char *pFileData, ULONG FileDataSize);
 	static bool IsV8File(std::basic_ifstream<char> &file);
 
 	int BuildCfFile(const std::string &dirname, const std::string &filename);
@@ -95,7 +92,6 @@ public:
 	static int Deflate(const char* in_buf, char** out_buf, ULONG in_len, ULONG* out_len);
 	static int Inflate(const char* in_buf, char** out_buf, ULONG in_len, ULONG* out_len);
 
-	int LoadFile(char *pFileData, ULONG FileData, bool boolInflate = true, bool UnpackWhenNeed = false);
 	int UnpackToDirectoryNoLoad(const std::string &directory, std::basic_ifstream<char> &file, ULONG FileData, bool boolInflate = true, bool UnpackWhenNeed = false);
 
 	int UnpackToFolder(const std::string &filename, const std::string &dirname, char *block_name = NULL, bool print_progress = false);
@@ -104,13 +100,11 @@ public:
 
 	int SaveBlockData(std::basic_ofstream<char> &file_out, const char *pBlockData, UINT BlockDataSize, UINT PageSize = 512);
 
-	int SaveFileToFolder(const std::string &dirname) const;
-
 	static int PackElem(CV8Elem &pElem);
 
 
 	CV8File();
-	CV8File(char *pFileData, bool boolUndeflate = true);
+
 	virtual ~CV8File();
 
 	CV8File(const CV8File &src);

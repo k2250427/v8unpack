@@ -87,11 +87,4 @@ _httoi8(const char *value)
     return result;
 }
 
-int ReadBlockData(char *pFileData, const stBlockHeader *pStartBlockHeader, char **out, uint32_t *data_size)
-{
-    MemoryInputStream m_in(pFileData);
-    MemoryOutputStream m_out(out, pStartBlockHeader);
-    return ReadBlockData(m_in, pStartBlockHeader, m_out, data_size);
-}
-
 }
