@@ -533,22 +533,101 @@ int CV8File::UnpackToFolder(const std::string &filename_in, const std::string &d
     boost::filesystem::path filepath(filename_in);
     boost::filesystem::ifstream file_in(filepath, std::ios_base::binary);
 
+    boost::filesystem::path dir_path(dirname);
+
+    if (!boost::filesystem::exists(dir_path)) {
+        if (!boost::filesystem::create_directory(dir_path)) {
+            std::cerr << "UnpackToFolder. Error in creating directory!" << std::endl;
+            return ret;
+        }
+    }
+
     if (!file_in) {
         std::cerr << "UnpackToFolder. Input file not found!" << std::endl;
         return -1;
     }
 
-    ret = UnpackToDirectoryNoLoad(dirname, file_in, false, false);
+    stFileHeader FileHeader;
+    stBlockHeader BlockHeader;
 
-    if (ret == V8UNPACK_NOT_V8_FILE) {
+    size_t rd;
+
+    rd = file_in.read((char*)&FileHeader, sizeof(FileHeader)).gcount();
+
+    if (rd < sizeof(FileHeader)) {
         std::cerr << "UnpackToFolder. This is not V8 file!" << std::endl;
         return ret;
     }
-    if (ret == V8UNPACK_NOT_V8_FILE) {
-        std::cerr << "UnpackToFolder. Error in load file in memory!" << std::endl;
-        return ret;
+
+    {   // Сохраняем заголовок
+        boost::filesystem::ofstream file_out(dir_path / "FileHeader");
+        file_out.write((char*)&FileHeader, sizeof(FileHeader));
     }
 
+    file_in.read((char*)&BlockHeader, sizeof(BlockHeader));
+    unsigned ElemsAddrsSize;
+
+    stElemAddr *pElemsAddrs = NULL;
+    V8Raw::ReadBlockData(file_in, &BlockHeader, (char**)&pElemsAddrs, &ElemsAddrsSize);
+    unsigned ElemsNum = ElemsAddrsSize / sizeof(stElemAddr);
+
+    stElemAddr *pElem = pElemsAddrs;
+    for (unsigned i = ElemsNum; i; i--, pElem++) {
+
+        if (pElem->fffffff != V8Raw::V8_FF_SIGNATURE) {
+            break;
+        }
+
+        file_in.seekg(pElem->elem_header_addr, std::ios_base::beg);
+        file_in.read((char*)&BlockHeader, sizeof(BlockHeader));
+
+        if (BlockHeader.EOL_0D != 0x0d ||
+                BlockHeader.EOL_0A != 0x0a ||
+                BlockHeader.space1 != 0x20 ||
+                BlockHeader.space2 != 0x20 ||
+                BlockHeader.space3 != 0x20 ||
+                BlockHeader.EOL2_0D != 0x0d ||
+                BlockHeader.EOL2_0A != 0x0a) {
+
+            ret = V8UNPACK_HEADER_ELEM_NOT_CORRECT;
+            break;
+        }
+
+        CV8Elem elem;
+        V8Raw::ReadBlockData(file_in, &BlockHeader, &elem.pHeader, &elem.HeaderSize);
+
+        char *ElemName = new char[elem.HeaderSize - sizeof(stElemHeaderBegin)];
+        unsigned ElemNameLen;
+
+        GetElemName(elem, ElemName, &ElemNameLen);
+
+        std::string sElemName(ElemName);
+
+        delete [] ElemName;
+
+        {
+            boost::filesystem::ofstream file_out(dir_path / (sElemName + ".header"));
+            file_out.write((char*)elem.pHeader, elem.HeaderSize);
+            delete [] elem.pHeader;
+        }
+
+        if (pElem->elem_data_addr != V8Raw::V8_FF_SIGNATURE) {
+
+            file_in.seekg(pElem->elem_data_addr, std::ios_base::beg);
+            file_in.read((char*)&BlockHeader, sizeof(BlockHeader));
+            V8Raw::ReadBlockData(file_in, &BlockHeader, &elem.pData, &elem.DataSize);
+
+            {
+                boost::filesystem::ofstream file_out(dir_path / (sElemName + ".data"));
+                file_out.write((char*)elem.pData, elem.DataSize);
+                delete [] elem.pData;
+           }
+
+        }
+
+    } // for Elems
+
+    std::cout << "Unpack Ok" << std::endl;
     return 0;
 }
 
@@ -602,23 +681,14 @@ int CV8File::PackFromFolder(const std::string &dirname, const std::string &filen
 
     boost::filesystem::ifstream file_in(path_header, std::ios_base::binary);
     if (!file_in) {
-
-        // Создаём заголовок по-умолчанию
-        FileHeader.next_page_addr = V8Raw::V8_FF_SIGNATURE;
-        FileHeader.page_size = V8Raw::V8_DEFAULT_PAGE_SIZE;
-        FileHeader.storage_ver = 0;
-        FileHeader.reserved = 0;
-
-    } else {
-
-        file_in.seekg(0, std::ios_base::end);
-        size_t filesize = file_in.tellg();
-        file_in.seekg(0, std::ios_base::beg);
-
-        file_in.read((char *)&FileHeader, filesize);
-        file_in.close();
+        std::cerr << "PackFromFolder. No input FileHeader!" << std::endl;
+        return -1;
     }
 
+    stFileHeader FileHeader;
+
+    file_in.read((char *)&FileHeader, sizeof(FileHeader));
+    file_in.close();
 
     boost::filesystem::directory_iterator d_end;
 
@@ -637,12 +707,10 @@ int CV8File::PackFromFolder(const std::string &dirname, const std::string &filen
         for (; dit != d_end; ++dit) {
 
             boost::filesystem::path current_file(dit->path());
-            std::string name = current_file.filename().string();
 
-            if (name.at(0) == '.')
-                continue;
+            if (current_file.extension().string() == ".header")
+                ++ElemsNum;
 
-            ++ElemsNum;
         }
     }
 
@@ -685,43 +753,22 @@ int CV8File::PackFromFolder(const std::string &dirname, const std::string &filen
             boost::filesystem::path data_path = current_file.replace_extension("data");
             {
                 boost::filesystem::ifstream file_in(data_path, std::ios_base::binary);
-                file_in.seekg(0, std::ios_base::end);
-                elem.DataSize = file_in.tellg();
-                file_in.seekg(0, std::ios_base::beg);
-                elem.pData = new char[elem.DataSize];
 
-                file_in.read((char *)elem.pData, elem.DataSize);
+                if (file_in) {
+                    file_in.seekg(0, std::ios_base::end);
+                    elem.DataSize = file_in.tellg();
+                    file_in.seekg(0, std::ios_base::beg);
+                    elem.pData = new char[elem.DataSize];
+
+                    file_in.read((char *)elem.pData, elem.DataSize);
+                }
             }
 
             V8Raw::SaveBlockData(file_out, elem.pHeader, elem.HeaderSize, elem.HeaderSize);
-            V8Raw::SaveBlockData(file_out, elem.pData, elem.DataSize);
-
+            if (elem.pData)
+                V8Raw::SaveBlockData(file_out, elem.pData, elem.DataSize);
 
         } else
-        if (current_file.extension().string() != ".data") {
-
-            /* Какие-то файлы в корнѣ */
-            {
-                boost::filesystem::ifstream file_in(current_file, std::ios_base::binary);
-                file_in.seekg(0, std::ios_base::end);
-                elem.DataSize = file_in.tellg();
-                file_in.seekg(0, std::ios_base::beg);
-                elem.pData = new char[elem.DataSize];
-
-                file_in.read((char *)elem.pData, elem.DataSize);
-
-                std::string name = current_file.filename().string();
-
-                elem.HeaderSize = sizeof(stElemHeaderBegin) + (name.size() + 1) * 2;
-                elem.pHeader = new char[elem.HeaderSize];
-
-                memset(elem.pHeader, 0, elem.HeaderSize);
-
-                SetElemName(elem, name.c_str(), name.size());
-            }
-            V8Raw::SaveBlockData(file_out, elem.pHeader, elem.HeaderSize, elem.HeaderSize);
-            V8Raw::SaveBlockData(file_out, elem.pData, elem.DataSize);
-       } else
             continue;
 
         //Добавляем элемент в TOC
