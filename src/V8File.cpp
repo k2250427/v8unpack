@@ -627,6 +627,8 @@ int CV8File::UnpackToFolder(const std::string &filename_in, const std::string &d
 
     } // for Elems
 
+    delete [] pElemsAddrs;
+
     std::cout << "Unpack Ok" << std::endl;
     return 0;
 }
@@ -732,7 +734,7 @@ int CV8File::PackFromFolder(const std::string &dirname, const std::string &filen
     boost::filesystem::directory_iterator it(p_curdir);
     for (; it != d_end; it++) {
         boost::filesystem::path current_file(it->path());
-        CV8Elem elem;
+
         if (current_file.extension().string() == ".header") {
 
             filename = dirname;
@@ -774,10 +776,10 @@ int CV8File::PackFromFolder(const std::string &dirname, const std::string &filen
             if (elem.pData)
                 V8Raw::SaveBlockData(file_out, elem.pData, elem.DataSize);
 
+            elem.Free();
+
         } else
             continue;
-
-        elem.Free();
 
        ++ElemNum;
        ++toc;
