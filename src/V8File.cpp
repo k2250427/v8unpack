@@ -715,7 +715,7 @@ int CV8File::PackFromFolder(const std::string &dirname, const std::string &filen
     }
 
     uint32_t cur_block_addr = sizeof(stFileHeader) + sizeof(stBlockHeader);
-    stElemAddr *pTOC;
+    stElemAddr *pTOC, *toc;
     pTOC = new stElemAddr[ElemsNum];
     if (sizeof(stElemAddr) * ElemsNum < V8Raw::V8_DEFAULT_PAGE_SIZE)
         cur_block_addr += V8Raw::V8_DEFAULT_PAGE_SIZE;
@@ -723,11 +723,12 @@ int CV8File::PackFromFolder(const std::string &dirname, const std::string &filen
         cur_block_addr += sizeof(stElemAddr) * ElemsNum;
 
     //Резервируем место в начале файла под заголовок и TOC
-    for(unsigned i=0; i < cur_block_addr; i++) {
+    for (unsigned i = 0; i < cur_block_addr; i++) {
         file_out << '\0';
     }
 
     unsigned ElemNum = 0;
+    toc = pTOC;
     boost::filesystem::directory_iterator it(p_curdir);
     for (; it != d_end; it++) {
         boost::filesystem::path current_file(it->path());
@@ -764,34 +765,22 @@ int CV8File::PackFromFolder(const std::string &dirname, const std::string &filen
                 }
             }
 
+            toc->fffffff = V8Raw::V8_FF_SIGNATURE;
+
+            toc->elem_header_addr = file_out.tellp();
             V8Raw::SaveBlockData(file_out, elem.pHeader, elem.HeaderSize, elem.HeaderSize);
+
+            toc->elem_data_addr = file_out.tellp();
             if (elem.pData)
                 V8Raw::SaveBlockData(file_out, elem.pData, elem.DataSize);
 
         } else
             continue;
 
-        //Добавляем элемент в TOC
-        pTOC[ElemNum].elem_header_addr = cur_block_addr;
-        cur_block_addr += sizeof(stBlockHeader) + elem.HeaderSize;
-        pTOC[ElemNum].elem_data_addr = cur_block_addr;
-        cur_block_addr += sizeof(stBlockHeader);
-        if (elem.DataSize > V8Raw::V8_DEFAULT_PAGE_SIZE)
-            cur_block_addr += elem.DataSize;
-        else
-            cur_block_addr += V8Raw::V8_DEFAULT_PAGE_SIZE;
-
-        pTOC[ElemNum].fffffff = V8Raw::V8_FF_SIGNATURE;
-
-        delete[] elem.pData;
-        elem.pData = NULL;
-        delete[] elem.pHeader;
-        elem.pHeader = NULL;
-        elem.IsV8File = false;
-        elem.HeaderSize = 0;
-        elem.DataSize = 0;
+        elem.Free();
 
        ++ElemNum;
+       ++toc;
     } // for it
 
     //Записывем заголовок файла
@@ -804,6 +793,8 @@ int CV8File::PackFromFolder(const std::string &dirname, const std::string &filen
     V8Raw::SaveBlockData(file_out, (const char*) pTOC, sizeof(stElemAddr) * ElemsNum);
 
     delete [] pTOC;
+
+    std::cout << "PackToFolder Ok." << std::endl;
 
     return 0;
 }
