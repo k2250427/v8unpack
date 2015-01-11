@@ -5,5 +5,8 @@
 			<Depends filename="v8container/v8container.cbp" />
 		</Project>
 		<Project filename="v8container/v8container.cbp" />
+		<Project filename="testlibc/testlibc.cbp">
+			<Depends filename="v8container/v8container.cbp" />
+		</Project>
 	</Workspace>
 </CodeBlocks_workspace_file>
