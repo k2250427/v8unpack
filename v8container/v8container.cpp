@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 
 
 #define DEFAULT_FOPEN_MODE "rw"
@@ -15,6 +16,12 @@ using std::fstream;
 #define READ_UNLOCK  {}
 #define WRITE_LOCK   {}
 #define WRITE_UNLOCK {}
+
+struct AddresedFile;
+
+static uint32_t
+ReplaceBlockData(std::fstream &f, const char *pBlockData, unsigned BlockDataSize);
+
 
 struct __stV8Container {
 public:
@@ -34,12 +41,16 @@ public:
     void                    Create(const char *filename);
     void                    Close();
 
-    const vector<V8File>    GetFiles();
+    int                     FindFile(const char *name) const;
     void                    SetNeedPack(bool value) { NeedPack = value; }
+
+    void                    WriteFile(const char *filename);
+    vector<uint32_t>        GetBlockChain(const AddresedFile &afile) const;
 
 protected:
 
     void                    ReadFiles();
+    void                    UpdateRootTable();
 
 private:
 
@@ -50,11 +61,12 @@ private:
 
     mutable fstream                     f;
     bool                                modified;
-    vector<stElemAddr>                  AddrTable;
+//    vector<stElemAddr>                  AddrTable;
     uint32_t                            m_DefaultPageSize;
     uint32_t                            FreeBlock;
     bool                                FileListRead;
-    vector<V8File>                      Files;
+//    vector<V8File>                      Files;
+    vector<AddresedFile>                Files;
     bool                                NeedPack;
 };
 
@@ -65,7 +77,10 @@ public:
         : parent(NULL) {}
 
     __stV8File(const __stV8File &src)
-        : parent(src.parent), name(src.name), is_folder(src.is_folder), is_packed(src.is_packed)
+        :
+            parent(src.parent), name(src.name),
+            is_folder(src.is_folder), is_packed(src.is_packed),
+            header(src.header)
     {}
 
     __stV8File(V8Container *parent, const char *data, uint32_t size)
@@ -81,8 +96,37 @@ public:
             c += 2;
         }
     }
+    __stV8File(const V8Container *parent, const char *filename)
+        : parent(parent), name(filename), is_folder(false), is_packed(false)
+    {
+        header.date_creation = 0;     /* TODO: Now() / stat */
+        header.date_modification = 0; /* TODO: Now() / stat */
+        header.res = 0;
+    }
 
-    V8Container        *parent;
+    bool operator == (const __stV8File &src) const
+    {
+        return (name == src.name) && (parent == src.parent);
+    }
+
+    unsigned MakeHeader(char **data)
+    {
+        unsigned data_size = sizeof(header) + (name.size() + 2)*2;
+        *data = new char[data_size];
+        *((stElemHeaderBegin*)(*data)) = header;
+        char *c = &(*data)[sizeof(header)];
+        for (size_t i = 0; i < name.size(); ++i) {
+            /* TODO: уникод? */
+            *c++ = name[i];
+            *c++ = 0;
+        }
+        for (int i = 0; i < 4; ++i)
+            *c++ = 0;
+
+        return data_size;
+    }
+
+    const V8Container  *parent;
     std::string         name;
     bool                is_folder;
     bool                is_packed;
@@ -90,46 +134,40 @@ public:
     stElemHeaderBegin   header;
 };
 
-__stV8Container::~__stV8Container()
-{
-}
 
-void
-__stV8Container::ReadFiles()
-{
-    READ_LOCK ;
+struct AddresedFile {
 
-    vector<stElemAddr>::const_iterator cit;
-    for (cit = AddrTable.begin(); cit != AddrTable.end(); cit++) {
+    V8File          file;
+    stElemAddr      addr;
 
-        char *data = NULL;
-        uint32_t data_size = 0;
-
-        f.seekg(cit->elem_header_addr);
-
-        stBlockHeader BlockHeader;
-
-        ReadBlockHeader(&BlockHeader);
-        V8Raw::ReadBlockData(f, &BlockHeader, &data, &data_size);
-
-        V8File file(this, data, data_size);
-        Files.push_back(file);
-
-        delete [] data;
+    AddresedFile(const V8File &src)
+        : file(src)
+    {
+        addr.elem_data_addr = V8Raw::V8_FF_SIGNATURE;
+        addr.elem_header_addr = V8Raw::V8_FF_SIGNATURE;
+        addr.fffffff = V8Raw::V8_FF_SIGNATURE;
     }
 
-    FileListRead = true;
+    bool operator == (const V8File &b) const
+    {
+        return file == b;
+    }
 
-    READ_UNLOCK ;
-}
+    bool operator == (const AddresedFile &b) const
+    {
+        return file == b.file;
+    }
 
-const vector<V8File>
-__stV8Container::GetFiles()
+    bool is_new() const
+    {
+        return addr.elem_header_addr == V8Raw::V8_FF_SIGNATURE;
+    }
+
+};
+
+
+__stV8Container::~__stV8Container()
 {
-    if (!FileListRead)
-        ReadFiles();
-
-    return Files;
 }
 
 void __stV8Container::Close()
@@ -139,12 +177,29 @@ void __stV8Container::Close()
     if (f.is_open())
         f.close();
 
-    AddrTable.clear();
     Files.clear();
 
     modified = false;
 
     WRITE_UNLOCK ;
+}
+
+void
+__stV8Container::UpdateRootTable()
+{
+
+    f.seekp(sizeof(stFileHeader));
+    f.seekg(f.tellp());
+
+    vector<stElemAddr> table;
+    table.reserve(Files.size());
+
+    vector<AddresedFile>::const_iterator cit;
+    for (cit = Files.begin(); cit != Files.end(); ++cit) {
+        table.push_back(cit->addr);
+    }
+
+    ReplaceBlockData(f, (char*)table.data(), sizeof(stElemAddr) * table.size());
 }
 
 void
@@ -170,11 +225,26 @@ __stV8Container::Open(const char *filename)
     V8Raw::ReadBlockData(f, &BlockHeader, (char**)&pElemsAddrs, &ElemsAddrsSize);
     unsigned ElemsNum = ElemsAddrsSize / sizeof(stElemAddr), i;
 
-    AddrTable.reserve(ElemsNum);
     Files.reserve(ElemsNum);
 
     for (i = 0, CurElemAddr = pElemsAddrs; i < ElemsNum; ++i, ++CurElemAddr) {
-        AddrTable.push_back(*CurElemAddr);
+
+        char *data = NULL;
+        uint32_t data_size = 0;
+
+        f.seekg(CurElemAddr->elem_header_addr);
+
+        stBlockHeader BlockHeader;
+
+        ReadBlockHeader(&BlockHeader);
+        V8Raw::ReadBlockData(f, &BlockHeader, &data, &data_size);
+
+        AddresedFile afile(V8File(this, data, data_size));
+        afile.addr = *CurElemAddr;
+
+        Files.push_back(afile);
+
+        delete [] data;
     }
 
     delete [] pElemsAddrs;
@@ -217,6 +287,186 @@ __stV8Container::Create(const char *filename)
     WRITE_UNLOCK ;
 }
 
+int
+__stV8Container::FindFile(const char *name) const
+{
+    vector<AddresedFile>::const_iterator cit = std::find(
+                                    Files.begin(),
+                                    Files.end(),
+                                    V8File(this, name)
+    );
+
+    if (cit == Files.end())
+        return -1;
+
+    return cit - Files.begin();
+
+}
+
+vector<uint32_t>
+__stV8Container::GetBlockChain(const AddresedFile &afile) const
+{
+    vector<uint32_t> R;
+
+    if (afile.addr.elem_data_addr == V8Raw::V8_FF_SIGNATURE) {
+        /* новый файл, нет цепочки блоков */
+        return R;
+    }
+
+    return R;
+}
+
+static uint32_t
+AddEmptyBlocks(std::fstream &f, unsigned count, unsigned page_size)
+{
+    std::fstream::pos_type ppos = f.tellp();
+
+    f.seekp(0, std::ios_base::end);
+
+    uint32_t first = f.tellp();
+    uint32_t next = first;
+
+    while (count--) {
+
+        stBlockHeader Header;
+
+        if (count)
+            next += sizeof(Header) + page_size;
+        else
+            next = V8Raw::V8_FF_SIGNATURE;
+
+        V8Raw::PrepareBlockHeader(&Header, 0, page_size, next);
+
+        f.write((char*)&Header, sizeof(Header));
+        for (unsigned i = 0; i < page_size; ++i)
+            f << '\0';
+    }
+
+    f.seekp(ppos);
+    return first;
+}
+
+static uint32_t
+AddEmptySize(std::fstream &f, unsigned needed_size, unsigned page_size)
+{
+    unsigned needed = needed_size / page_size;
+    if (needed_size % page_size)
+        ++needed;
+    return AddEmptyBlocks(f, needed, page_size);
+}
+
+/*! ReplaceBlockData
+    перезаписывет существующие данные
+    возвращает адрес первого освободившегося блока или FF-сигнатуру, если все старые блоки использованы
+    в потоке out указатели G и P должны быть установлены на начало заголовка первого блока
+*/
+static uint32_t
+ReplaceBlockData(std::fstream &f, const char *pBlockData, unsigned BlockDataSize)
+{
+
+    unsigned data_remains = BlockDataSize;
+    while (data_remains) {
+
+        stBlockHeader Header;
+
+        std::fstream::pos_type ppos = f.tellp();
+        f.read((char*)&Header, sizeof(Header));
+        f.seekp(ppos);
+
+        uint32_t next_addr = V8Raw::_httoi8(Header.next_page_addr_hex);
+        uint32_t page_size = V8Raw::_httoi8(Header.page_size_hex);
+
+        if (page_size >= data_remains) {
+            /* последний блок */
+
+            V8Raw::PrepareBlockHeader(&Header, data_remains, page_size, V8Raw::V8_FF_SIGNATURE);
+
+            f.write((char*)&Header, sizeof(Header));
+            f.write(pBlockData, data_remains);
+
+            return next_addr;
+
+        } else {
+
+            if (next_addr == V8Raw::V8_FF_SIGNATURE) {
+
+                /* Необходимо добавить достаточное количество */
+                /* TODO: брать в расчёт свободные блоки */
+                uint32_t new_pages_size = V8Raw::V8_DEFAULT_PAGE_SIZE; /* TODO: передавать размер новых страниц через параметр */
+
+                next_addr = AddEmptySize(f, data_remains, new_pages_size);
+
+            }
+
+            V8Raw::PrepareBlockHeader(&Header, page_size, page_size, next_addr);
+
+            f.write((char*)&Header, sizeof(Header));
+            f.write(pBlockData, page_size);
+
+            pBlockData += page_size;
+            data_remains -= page_size;
+
+        }
+
+    }
+
+    return V8Raw::V8_FF_SIGNATURE;
+}
+
+void
+__stV8Container::WriteFile(const char *filename)
+{
+    WRITE_LOCK ;
+
+    int index = FindFile(filename);
+    if (index == -1) {
+        index = Files.size();
+        Files.push_back(__stV8File(this, filename));
+    }
+
+    AddresedFile &afile = Files[index];
+    char *header;
+    unsigned header_size = afile.file.MakeHeader(&header);
+
+    std::ifstream fin(filename, std::ios_base::binary);
+
+    fin.seekg(0, std::ios_base::end);
+    std::ifstream::pos_type data_size = fin.tellg();
+    fin.seekg(0);
+
+    if (afile.is_new()) {
+        afile.addr.elem_header_addr = AddEmptySize(f, header_size, m_DefaultPageSize);
+        afile.addr.elem_data_addr = AddEmptySize(f, data_size, m_DefaultPageSize);
+    }
+
+    f.seekg(afile.addr.elem_header_addr);
+    f.seekp(f.tellg());
+    ReplaceBlockData(f, header, header_size);
+
+    delete [] header;
+
+
+    #define BUFFER_SIZE 4096
+
+    if (NeedPack) {
+
+        /* TODO: Запись файла с упаковкой */
+
+    } else {
+        char *data = new char [data_size];
+        fin.read(data, data_size);
+
+        f.seekg(afile.addr.elem_data_addr);
+        f.seekp(f.tellg());
+
+        ReplaceBlockData(f, data, data_size);
+    }
+
+    UpdateRootTable();
+
+    WRITE_UNLOCK ;
+}
+
 void
 __stV8Container::SetDefaultPageSize(uint32_t PageSize) throw ()
 {
@@ -231,19 +481,21 @@ __stV8Container::GetDefaultPageSize() const throw ()
 
 
 V8Container *
-V8Container_OpenFile(const char *filename)
+V8Container_OpenFile(const char *filename, bool inflated)
 {
     V8Container *C = new V8Container();
     C->Open(filename);
+    C->SetNeedPack(inflated);
 
     return C;
 }
 
 V8Container *
-V8Container_CreateFile(const char *filename)
+V8Container_CreateFile(const char *filename, bool inflated)
 {
     V8Container *C = new V8Container();
     C->Create(filename);
+    C->SetNeedPack(inflated);
 
     return C;
 }
@@ -253,4 +505,14 @@ void
 V8Container_CloseFile(V8Container *Container)
 {
     delete Container;
+}
+
+
+const V8File *
+V8Container_AddFile(V8Container *Container, const char *filename)
+{
+    Container->WriteFile(filename);
+    int index = Container->FindFile(filename);
+    /* return &(Container->GetFiles()[index]).file; */
+    return NULL;
 }

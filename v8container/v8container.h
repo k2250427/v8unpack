@@ -4,6 +4,8 @@
 #ifndef V8CONTAINER_LIB_H
 #define V8CONTAINER_LIB_H
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
@@ -18,7 +20,8 @@ typedef struct __stV8File V8File;
 /*! Открывает 8-файл для чтения-записи */
 V8Container *
 V8Container_OpenFile(
-                        const   char                   *filename /*!< Путь к файлу */
+                        const   char                   *filename, /*!< Путь к файлу */
+                                bool                    inflated  /*!< Данные внутри файла запакованы */
                     );
 
 /*! Открывает вложенный 8-файл для чтения-записи */
@@ -30,7 +33,8 @@ V8Container_OpenV8File(
 /*! Создаёт новый пустой 8-файл и открывает для чтения-записи */
 V8Container *
 V8Container_CreateFile(
-                        const   char                   *filename /*!< Путь к файлу*/
+                        const   char                   *filename, /*!< Путь к файлу*/
+                                bool                    inflated  /*!< Данные внутри файла запакованы */
                     );
 
 /*! Закрывает файл и освобождает выделенную память
