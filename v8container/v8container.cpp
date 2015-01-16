@@ -11,6 +11,11 @@ using std::string;
 using std::vector;
 using std::fstream;
 
+#define READ_LOCK    {}
+#define READ_UNLOCK  {}
+#define WRITE_LOCK   {}
+#define WRITE_UNLOCK {}
+
 struct __stV8Container {
 public:
     __stV8Container() throw ()
@@ -92,6 +97,8 @@ __stV8Container::~__stV8Container()
 void
 __stV8Container::ReadFiles()
 {
+    READ_LOCK ;
+
     vector<stElemAddr>::const_iterator cit;
     for (cit = AddrTable.begin(); cit != AddrTable.end(); cit++) {
 
@@ -112,6 +119,8 @@ __stV8Container::ReadFiles()
     }
 
     FileListRead = true;
+
+    READ_UNLOCK ;
 }
 
 const vector<V8File>
@@ -125,6 +134,8 @@ __stV8Container::GetFiles()
 
 void __stV8Container::Close()
 {
+    WRITE_LOCK ;
+
     if (f.is_open())
         f.close();
 
@@ -132,12 +143,16 @@ void __stV8Container::Close()
     Files.clear();
 
     modified = false;
+
+    WRITE_UNLOCK ;
 }
 
 void
 __stV8Container::Open(const char *filename)
 {
     Close();
+
+    READ_LOCK ;
 
     f.open(filename, std::ios_base::binary | std::ios_base::in | std::ios_base::out);
 
@@ -165,12 +180,16 @@ __stV8Container::Open(const char *filename)
     delete [] pElemsAddrs;
 
     FileListRead = false;
+
+    READ_UNLOCK ;
 }
 
 void
 __stV8Container::Create(const char *filename)
 {
     Close();
+
+    WRITE_LOCK ;
 
     f.open(filename, std::ios_base::binary | std::ios_base::in | std::ios_base::out | std::ios_base::trunc);
 
@@ -194,6 +213,8 @@ __stV8Container::Create(const char *filename)
         f << '\0';
 
     FileListRead = true;
+
+    WRITE_UNLOCK ;
 }
 
 void
