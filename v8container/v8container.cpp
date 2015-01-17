@@ -4,6 +4,7 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
+#include <boost/shared_ptr.hpp>
 
 
 #define DEFAULT_FOPEN_MODE "rw"
@@ -19,8 +20,119 @@ using std::fstream;
 
 struct AddresedFile;
 
+
+
 static uint32_t
-ReplaceBlockData(std::fstream &f, const char *pBlockData, unsigned BlockDataSize);
+AddEmptyBlocks(std::fstream &f, unsigned count, unsigned page_size)
+{
+    std::fstream::pos_type ppos = f.tellp();
+
+    f.seekp(0, std::ios_base::end);
+
+    uint32_t first = f.tellp();
+    uint32_t next = first;
+
+    while (count--) {
+
+        stBlockHeader Header;
+
+        if (count)
+            next += sizeof(Header) + page_size;
+        else
+            next = V8Raw::V8_FF_SIGNATURE;
+
+        V8Raw::PrepareBlockHeader(&Header, 0, page_size, next);
+
+        f.write((char*)&Header, sizeof(Header));
+        for (unsigned i = 0; i < page_size; ++i)
+            f << '\0';
+    }
+
+    f.seekp(ppos);
+    return first;
+}
+
+static uint32_t
+AddEmptySize(std::fstream &f, unsigned needed_size, unsigned page_size)
+{
+    unsigned needed = needed_size / page_size;
+    if (needed_size % page_size)
+        ++needed;
+    return AddEmptyBlocks(f, needed, page_size);
+}
+
+
+/*! ReplaceBlockData
+    перезаписывет существующие данные
+    возвращает адрес первого освободившегося блока или FF-сигнатуру, если все старые блоки использованы
+    в потоке out указатели G и P должны быть установлены на начало заголовка первого блока
+*/
+
+template<class InputStream>
+uint32_t
+ReplaceBlockData(std::fstream &f, InputStream &in, unsigned BlockDataSize)
+{
+    unsigned data_remains = BlockDataSize;
+
+    while (data_remains) {
+
+        stBlockHeader Header;
+
+        std::fstream::pos_type ppos = f.tellp();
+        f.read((char*)&Header, sizeof(Header));
+        f.seekp(ppos);
+
+        uint32_t next_addr = V8Raw::_httoi8(Header.next_page_addr_hex);
+        uint32_t page_size = V8Raw::_httoi8(Header.page_size_hex);
+
+        /* ASSERT (page_size != 0) */
+
+        char *buffer = new char[page_size];
+
+        if (page_size >= data_remains) {
+            /* последний блок */
+
+            in.read(buffer, data_remains);
+
+            V8Raw::PrepareBlockHeader(&Header, data_remains, page_size, V8Raw::V8_FF_SIGNATURE);
+
+            f.write((char*)&Header, sizeof(Header));
+            f.write(buffer, data_remains);
+
+            delete [] buffer;
+
+            return next_addr;
+
+        } else {
+
+            if (next_addr == V8Raw::V8_FF_SIGNATURE) {
+
+                /* Необходимо добавить достаточное количество */
+                /* TODO: брать в расчёт свободные блоки */
+                uint32_t new_pages_size = V8Raw::V8_DEFAULT_PAGE_SIZE; /* TODO: передавать размер новых страниц через параметр */
+
+                next_addr = AddEmptySize(f, data_remains, new_pages_size);
+
+            }
+
+            in.read(buffer, page_size);
+
+            V8Raw::PrepareBlockHeader(&Header, page_size, page_size, next_addr);
+
+            f.write((char*)&Header, sizeof(Header));
+            f.write(buffer, page_size);
+
+            data_remains -= page_size;
+
+        }
+
+        delete [] buffer;
+
+    }
+
+    return V8Raw::V8_FF_SIGNATURE;
+}
+
 
 
 struct __stV8Container {
@@ -42,10 +154,14 @@ public:
     void                    Close();
 
     int                     FindFile(const char *name) const;
+    V8File                 *GetFile(int index) const;
     void                    SetNeedPack(bool value) { NeedPack = value; }
 
     void                    WriteFile(const char *filename);
+    void                    RemoveFile(V8File &file);
     vector<uint32_t>        GetBlockChain(const AddresedFile &afile) const;
+
+    void                    Flush();
 
 protected:
 
@@ -137,10 +253,10 @@ public:
 
 struct AddresedFile {
 
-    V8File          file;
-    stElemAddr      addr;
+    boost::shared_ptr<__stV8File>       file;
+    stElemAddr                          addr;
 
-    AddresedFile(const V8File &src)
+    AddresedFile(__stV8File *src)
         : file(src)
     {
         addr.elem_data_addr = V8Raw::V8_FF_SIGNATURE;
@@ -148,14 +264,14 @@ struct AddresedFile {
         addr.fffffff = V8Raw::V8_FF_SIGNATURE;
     }
 
-    bool operator == (const V8File &b) const
+    bool operator == (const __stV8File &b) const
     {
-        return file == b;
+        return *file == b;
     }
 
     bool operator == (const AddresedFile &b) const
     {
-        return file == b.file;
+        return *file == *b.file;
     }
 
     bool is_new() const
@@ -199,7 +315,8 @@ __stV8Container::UpdateRootTable()
         table.push_back(cit->addr);
     }
 
-    ReplaceBlockData(f, (char*)table.data(), sizeof(stElemAddr) * table.size());
+    V8Raw::MemoryInputStream m_in((char*)table.data());
+    ReplaceBlockData(f, m_in, sizeof(stElemAddr) * table.size());
 }
 
 void
@@ -239,7 +356,7 @@ __stV8Container::Open(const char *filename)
         ReadBlockHeader(&BlockHeader);
         V8Raw::ReadBlockData(f, &BlockHeader, &data, &data_size);
 
-        AddresedFile afile(V8File(this, data, data_size));
+        AddresedFile afile(new __stV8File(this, data, data_size));
         afile.addr = *CurElemAddr;
 
         Files.push_back(afile);
@@ -293,7 +410,7 @@ __stV8Container::FindFile(const char *name) const
     vector<AddresedFile>::const_iterator cit = std::find(
                                     Files.begin(),
                                     Files.end(),
-                                    V8File(this, name)
+                                    __stV8File(this, name)
     );
 
     if (cit == Files.end())
@@ -316,103 +433,6 @@ __stV8Container::GetBlockChain(const AddresedFile &afile) const
     return R;
 }
 
-static uint32_t
-AddEmptyBlocks(std::fstream &f, unsigned count, unsigned page_size)
-{
-    std::fstream::pos_type ppos = f.tellp();
-
-    f.seekp(0, std::ios_base::end);
-
-    uint32_t first = f.tellp();
-    uint32_t next = first;
-
-    while (count--) {
-
-        stBlockHeader Header;
-
-        if (count)
-            next += sizeof(Header) + page_size;
-        else
-            next = V8Raw::V8_FF_SIGNATURE;
-
-        V8Raw::PrepareBlockHeader(&Header, 0, page_size, next);
-
-        f.write((char*)&Header, sizeof(Header));
-        for (unsigned i = 0; i < page_size; ++i)
-            f << '\0';
-    }
-
-    f.seekp(ppos);
-    return first;
-}
-
-static uint32_t
-AddEmptySize(std::fstream &f, unsigned needed_size, unsigned page_size)
-{
-    unsigned needed = needed_size / page_size;
-    if (needed_size % page_size)
-        ++needed;
-    return AddEmptyBlocks(f, needed, page_size);
-}
-
-/*! ReplaceBlockData
-    перезаписывет существующие данные
-    возвращает адрес первого освободившегося блока или FF-сигнатуру, если все старые блоки использованы
-    в потоке out указатели G и P должны быть установлены на начало заголовка первого блока
-*/
-static uint32_t
-ReplaceBlockData(std::fstream &f, const char *pBlockData, unsigned BlockDataSize)
-{
-
-    unsigned data_remains = BlockDataSize;
-    while (data_remains) {
-
-        stBlockHeader Header;
-
-        std::fstream::pos_type ppos = f.tellp();
-        f.read((char*)&Header, sizeof(Header));
-        f.seekp(ppos);
-
-        uint32_t next_addr = V8Raw::_httoi8(Header.next_page_addr_hex);
-        uint32_t page_size = V8Raw::_httoi8(Header.page_size_hex);
-
-        if (page_size >= data_remains) {
-            /* последний блок */
-
-            V8Raw::PrepareBlockHeader(&Header, data_remains, page_size, V8Raw::V8_FF_SIGNATURE);
-
-            f.write((char*)&Header, sizeof(Header));
-            f.write(pBlockData, data_remains);
-
-            return next_addr;
-
-        } else {
-
-            if (next_addr == V8Raw::V8_FF_SIGNATURE) {
-
-                /* Необходимо добавить достаточное количество */
-                /* TODO: брать в расчёт свободные блоки */
-                uint32_t new_pages_size = V8Raw::V8_DEFAULT_PAGE_SIZE; /* TODO: передавать размер новых страниц через параметр */
-
-                next_addr = AddEmptySize(f, data_remains, new_pages_size);
-
-            }
-
-            V8Raw::PrepareBlockHeader(&Header, page_size, page_size, next_addr);
-
-            f.write((char*)&Header, sizeof(Header));
-            f.write(pBlockData, page_size);
-
-            pBlockData += page_size;
-            data_remains -= page_size;
-
-        }
-
-    }
-
-    return V8Raw::V8_FF_SIGNATURE;
-}
-
 void
 __stV8Container::WriteFile(const char *filename)
 {
@@ -421,17 +441,22 @@ __stV8Container::WriteFile(const char *filename)
     int index = FindFile(filename);
     if (index == -1) {
         index = Files.size();
-        Files.push_back(__stV8File(this, filename));
+        Files.push_back(new __stV8File(this, filename));
     }
 
     AddresedFile &afile = Files[index];
     char *header;
-    unsigned header_size = afile.file.MakeHeader(&header);
+    unsigned header_size = afile.file->MakeHeader(&header);
 
     std::ifstream fin(filename, std::ios_base::binary);
 
+    if (!fin) {
+        /* Ошибка доступа к файлу */
+        throw std::exception();
+    }
+
     fin.seekg(0, std::ios_base::end);
-    std::ifstream::pos_type data_size = fin.tellg();
+    size_t data_size = fin.tellg();
     fin.seekg(0);
 
     if (afile.is_new()) {
@@ -441,25 +466,25 @@ __stV8Container::WriteFile(const char *filename)
 
     f.seekg(afile.addr.elem_header_addr);
     f.seekp(f.tellg());
-    ReplaceBlockData(f, header, header_size);
+
+    V8Raw::MemoryInputStream m_in(header);
+
+    ReplaceBlockData(f, m_in, header_size);
 
     delete [] header;
 
 
     #define BUFFER_SIZE 4096
 
+    f.seekg(afile.addr.elem_data_addr);
+    f.seekp(f.tellg());
+
     if (NeedPack) {
 
         /* TODO: Запись файла с упаковкой */
 
     } else {
-        char *data = new char [data_size];
-        fin.read(data, data_size);
-
-        f.seekg(afile.addr.elem_data_addr);
-        f.seekp(f.tellg());
-
-        ReplaceBlockData(f, data, data_size);
+        ReplaceBlockData(f, fin, data_size);
     }
 
     UpdateRootTable();
@@ -479,6 +504,39 @@ __stV8Container::GetDefaultPageSize() const throw ()
     return m_DefaultPageSize;
 }
 
+V8File *
+__stV8Container::GetFile(int index) const
+{
+    return Files.at(index).file.get();
+}
+
+void
+__stV8Container::RemoveFile(V8File &file)
+{
+    vector<AddresedFile>::iterator fit = std::find(Files.begin(), Files.end(), file);
+    if (fit == Files.end()) {
+        /* TODO: throw */
+        return;
+    }
+
+    AddresedFile &afile = *fit;
+
+    if (afile.is_new()) {
+        Files.erase(fit);
+        return;
+    }
+
+    /* TODO: помѣтить свободныя страницы */
+
+    Files.erase(fit);
+
+    UpdateRootTable();
+}
+
+void
+__stV8Container::Flush()
+{
+}
 
 V8Container *
 V8Container_OpenFile(const char *filename, bool inflated)
@@ -504,15 +562,42 @@ V8Container_CreateFile(const char *filename, bool inflated)
 void
 V8Container_CloseFile(V8Container *Container)
 {
+    Container->Flush();
     delete Container;
 }
 
 
-const V8File *
+V8File *
 V8Container_AddFile(V8Container *Container, const char *filename)
 {
     Container->WriteFile(filename);
     int index = Container->FindFile(filename);
-    /* return &(Container->GetFiles()[index]).file; */
-    return NULL;
+    V8File *res = Container->GetFile(index);
+    return res;
+}
+
+void
+V8Container_RemoveFile(V8Container *Container, V8File *File)
+{
+    Container->RemoveFile(*File);
+}
+
+
+void
+V8Container_SetDefaultPageSize(V8Container *Container, unsigned PageSize)
+{
+    Container->SetDefaultPageSize(PageSize);
+}
+
+void
+V8Container_Flush(V8Container *Container)
+{
+    Container->Flush();
+}
+
+V8File *
+V8Container_FindFile(const V8Container *Container, const char *name)
+{
+    int index = Container->FindFile(name);
+    return Container->GetFile(index);
 }

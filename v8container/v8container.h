@@ -12,7 +12,7 @@ extern "C" {
 
 
 typedef struct __stV8Container V8Container;
-typedef struct __stV8File V8File;
+typedef struct __stV8File const V8File;
 
 /*! \defgroup V8Container Процедуры для работы с 8-файлом
   @{
@@ -27,7 +27,7 @@ V8Container_OpenFile(
 /*! Открывает вложенный 8-файл для чтения-записи */
 V8Container *
 V8Container_OpenV8File(
-                        const   V8File                 *v8File /*!< 8-файл, вложенный в другой файл */
+                                V8File                 *v8File /*!< 8-файл, вложенный в другой файл */
                        );
 
 /*! Создаёт новый пустой 8-файл и открывает для чтения-записи */
@@ -74,7 +74,7 @@ V8Container_AddFile(
 void
 V8Container_RemoveFile(
                                 V8Container            *Container, /*!< 8-файл, открытый для записи */
-                        const   V8File                 *File       /*!< Вложенный файл */
+                                V8File                 *File       /*!< Вложенный файл */
                         );
 
 
@@ -82,7 +82,7 @@ V8Container_RemoveFile(
 void
 V8Container_ExtractFileRaw(
                                 V8Container            *Container, /*!< 8-файл, открытый для чтения */
-                        const   V8File                 *File,      /*!< Вложенный файл */
+                                V8File                 *File,      /*!< Вложенный файл */
                         const   char                   *filename   /*!< Путь к выходному файлу */
                         );
 
@@ -90,9 +90,19 @@ V8Container_ExtractFileRaw(
 void
 V8Container_ExtractFile(
                                 V8Container            *Container, /*!< 8-файл, открытый для чтения */
-                        const   V8File                 *File,      /*!< Вложенный файл */
+                                V8File                 *File,      /*!< Вложенный файл */
                         const   char                   *filename   /*!< Путь к выходному файлу */
                         );
+
+
+void
+V8Container_SetDefaultPageSize(V8Container *Container, unsigned PageSize);
+
+void
+V8Container_Flush(V8Container *Container);
+
+V8File *
+V8Container_FindFile(const V8Container *Container, const char *name);
 
 /*!
  }@
