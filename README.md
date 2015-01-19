@@ -24,6 +24,11 @@ Project for [Codeblocks IDE](http://codeblocks.org/)
 ## Build
 
 Артефакты/релизы можно скачать с [build-server проекта](https://build.batanov.me/job/v8unpack-win/)
+
+[Прямая ссылка на последнюю успешную сборку win32](https://build.batanov.me/view/e8-script/job/v8unpack-win/label=mingw32/lastSuccessfulBuild/artifact/bin/Release/*zip*/v8unpack.zip)
+
+[Прямая ссылка на последнюю успешную сборку win64](https://build.batanov.me/view/e8-script/job/v8unpack-win/label=mingw64/lastSuccessfulBuild/artifact/bin/Release/*zip*/v8unpack.zip)
+
 ### Ubuntu/Debian
 
 ```
