@@ -23,6 +23,7 @@ Project for [Codeblocks IDE](http://codeblocks.org/)
 
 ## Build
 
+Артефакты/релизы можно скачать с [build-server проекта](https://build.batanov.me/job/v8unpack-win/)
 ### Ubuntu/Debian
 
 ```
