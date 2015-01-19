@@ -5,6 +5,8 @@
 #include <vector>
 #include <algorithm>
 #include <boost/shared_ptr.hpp>
+#include "InflateStream.h"
+#include "DeflateStream.h"
 
 
 #define DEFAULT_FOPEN_MODE "rw"
@@ -467,9 +469,10 @@ __stV8Container::WriteFile(const char *filename)
     f.seekg(afile.addr.elem_header_addr);
     f.seekp(f.tellg());
 
-    V8Raw::MemoryInputStream m_in(header);
-
-    ReplaceBlockData(f, m_in, header_size);
+    {
+        V8Raw::MemoryInputStream m_in(header);
+        ReplaceBlockData(f, m_in, header_size);
+    }
 
     delete [] header;
 
@@ -481,7 +484,8 @@ __stV8Container::WriteFile(const char *filename)
 
     if (NeedPack) {
 
-        /* TODO: Запись файла с упаковкой */
+        V8Raw::DeflateStream def(fin);
+        ReplaceBlockData(f, def, data_size);
 
     } else {
         ReplaceBlockData(f, fin, data_size);

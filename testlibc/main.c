@@ -7,7 +7,7 @@ int main()
 {
     const char filename[] = "test.v8c";
 
-    V8Container *C = V8Container_CreateFile(filename, false);
+    V8Container *C = V8Container_CreateFile(filename, true);
 
     V8Container_SetDefaultPageSize(C, 4096);
 
@@ -18,7 +18,7 @@ int main()
 
     V8Container_CloseFile(C);
 
-    C = V8Container_OpenFile(filename, false);
+    C = V8Container_OpenFile(filename, true);
 
     vf_main_c               = V8Container_FindFile(C, "main.c");
 

@@ -37,6 +37,8 @@
 			<Add option="-fexceptions" />
 			<Add option="$(PIC)" />
 		</Compiler>
+		<Unit filename="DeflateStream.cpp" />
+		<Unit filename="DeflateStream.h" />
 		<Unit filename="InflateStream.cpp" />
 		<Unit filename="InflateStream.h" />
 		<Unit filename="V8Raw.cpp" />

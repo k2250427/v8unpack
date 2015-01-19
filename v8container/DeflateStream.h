@@ -1,19 +1,18 @@
-#ifndef INFLATESTREAM_H
-#define INFLATESTREAM_H
+#ifndef DEFLATESTREAM_H
+#define DEFLATESTREAM_H
 
 #include <iostream>
-#include "zlib.h"
-
+#include <zlib.h>
 
 namespace V8Raw {
 
-class InflateStream
+class DeflateStream
 {
 public:
-    InflateStream(std::basic_istream<char> &source);
-    ~InflateStream();
+    DeflateStream(std::basic_istream<char> &source);
+    ~DeflateStream();
 
-    InflateStream &read(char *buffer, size_t size);
+    DeflateStream &read(char *buffer, size_t size);
     size_t gcount() const;
 
 protected:
@@ -28,5 +27,4 @@ private:
 };
 
 }
-
-#endif // INFLATESTREAM_H
+#endif // DEFLATESTREAM_H
