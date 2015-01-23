@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 /**
-    2014            dmpas       sergey(dot)batanov(at)dmpas(dot)ru
+    2014-2015       dmpas       sergey(dot)batanov(at)dmpas(dot)ru
  */
 
 // V8File.cpp: implementation of the CV8File class.
@@ -565,43 +565,13 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
                         break;
 
                 } else {
-                    boost::filesystem::ofstream out(elem_path, std::ios_base::binary);
-
-                    i_inf.seekg(0, std::ios_base::beg);
-                    i_inf.clear();
-
-                    while (i_inf) {
-
-                        const int buf_size = 1024;
-                        char buf[buf_size];
-                        int rd = i_inf.readsome(buf, buf_size);
-
-                        if (rd)
-                            out.write(buf, rd);
-                        else
-                            break;
-                    }
+                    boost::filesystem::rename(p_dir / ".v8unpack.inf", elem_path);
                 }
                 ret = 0;
             }
 
         } else {
-
-            i_tmp.seekg(0, std::ios_base::beg);
-            i_tmp.clear();
-
-            boost::filesystem::ofstream out(elem_path, std::ios_base::binary);
-            while (!i_tmp.eof()) {
-
-                const int buf_size = 1024;
-                char buf[buf_size];
-                int rd = i_tmp.readsome(buf, buf_size);
-
-                if (rd)
-                    out.write(buf, rd);
-                else
-                    break;
-            }
+            boost::filesystem::rename(p_dir / ".v8unpack.tmp", elem_path);
             ret = 0;
         }
 
