@@ -53,6 +53,13 @@ DeflateStream::read(char *buffer, size_t size)
             break;
         }
 
+        if (available != 0) {
+            memcpy(buffer, output, available * sizeof(char));
+            last_read += available;
+            buffer += available;
+            available = 0;
+        }
+
         UpdateBuffer();
 
         if (available == 0) {
