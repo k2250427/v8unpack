@@ -524,6 +524,7 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
         GetElemName(elem, ElemName, &ElemNameLen);
 
         boost::filesystem::path elem_path(p_dir / ElemName);
+        elem_path = boost::filesystem::absolute(elem_path);
 
         boost::filesystem::ofstream o_tmp(p_dir / ".v8unpack.tmp", std::ios_base::binary);
 
@@ -565,13 +566,17 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
                         break;
 
                 } else {
-                    boost::filesystem::rename(p_dir / ".v8unpack.inf", elem_path);
+                    i_inf.close();
+                    boost::system::error_code code;
+                    boost::filesystem::rename(p_dir / ".v8unpack.inf", elem_path, code);
                 }
                 ret = 0;
             }
 
         } else {
-            boost::filesystem::rename(p_dir / ".v8unpack.tmp", elem_path);
+            i_tmp.close();
+            boost::system::error_code code;
+            boost::filesystem::rename(p_dir / ".v8unpack.tmp", elem_path, code);
             ret = 0;
         }
 
