@@ -459,7 +459,8 @@ int CV8File::LoadFile(char *pFileData, ULONG FileDataSize, bool boolInflate, boo
 
     if (InflateBuffer)
         free(InflateBuffer);
-
+		
+	delete [] pElemsAddrs;
 
     return ret;
 }
@@ -593,16 +594,16 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
             elem.SaveFileToFolder(elem_path.string());
 
             elem.Dispose();
-            delete [] out_data;
 
         } else {
             /* Тупо пишем содержимое в цѣлевой файл*/
 
             boost::filesystem::ofstream out(elem_path, std::ios_base::binary);
             out.write(out_data, out_data_size);
-
-            delete [] out_data;
+			
         }
+		
+		free(out_data);
 
     }
 
@@ -679,9 +680,12 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
             // TODO: Зачем это нужно??
             //ReadBlockData(file, NULL, o_tmp, &elem.DataSize);
         }
+		
+		delete [] elem.pHeader;
 
      } // for i = ..ElemsNum
 
+	delete [] pElemsAddrs;
 
     return ret;
 }
@@ -971,6 +975,8 @@ bool CV8File::IsV8File(std::basic_ifstream<char> &file)
     stBlockHeader BlockHeader;
 
     stBlockHeader *pBlockHeader = &BlockHeader;
+	
+	memset(pBlockHeader, 0, sizeof(BlockHeader));
 
     std::ifstream::pos_type offset = file.tellg();
 
