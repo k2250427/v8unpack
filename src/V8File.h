@@ -167,6 +167,8 @@ public:
 
 	CV8File(const CV8File &src);
 
+	void Dispose();
+
 private:
 	stFileHeader	            FileHeader;
 	std::vector<stElemAddr>     ElemsAddrs;

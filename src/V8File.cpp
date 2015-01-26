@@ -464,6 +464,18 @@ int CV8File::LoadFile(char *pFileData, ULONG FileDataSize, bool boolInflate, boo
     return ret;
 }
 
+void CV8File::Dispose()
+{
+    std::vector<CV8Elem>::iterator elem;
+    for (elem = Elems.begin(); elem != Elems.end(); ++elem) {
+        if (elem->pData)
+            delete [] elem->pData;
+        if (elem->pHeader)
+            delete [] elem->pHeader;
+    }
+    Elems.clear();
+}
+
 //++ dmpas Затычка Issue6
 
 // Нѣкоторый условный предѣл
@@ -517,6 +529,7 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
                 return ret;
             }
 
+            inf.close();
             boost::filesystem::remove(tmp_path);
             out.close();
 
@@ -539,6 +552,7 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
             CV8File elem;
             elem.UnpackToDirectoryNoLoad(elem_path.string(), src, data_size, false, false);
             src.close();
+            elem.Dispose();
             boost::filesystem::remove(src_path);
         } else {
             src.close();
@@ -561,6 +575,10 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
 
         ret = CV8File::Inflate(source_data, &out_data, uDataSize, &out_data_size);
         if (ret) {
+
+            delete [] out_data;
+            delete [] source_data;
+
             /* TODO: Внятная ошибка */
             return ret;
         }
@@ -573,6 +591,9 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
             CV8File elem;
             elem.LoadFile(out_data, out_data_size, false, false);
             elem.SaveFileToFolder(elem_path.string());
+
+            elem.Dispose();
+            delete [] out_data;
 
         } else {
             /* Тупо пишем содержимое в цѣлевой файл*/
