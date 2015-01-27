@@ -459,7 +459,7 @@ int CV8File::LoadFile(char *pFileData, ULONG FileDataSize, bool boolInflate, boo
 
     if (InflateBuffer)
         free(InflateBuffer);
-		
+
 	delete [] pElemsAddrs;
 
     return ret;
@@ -479,18 +479,12 @@ void CV8File::Dispose()
 
 //++ dmpas Затычка Issue6
 
-// Нѣкоторый условный предѣл
-const size_t SmartLimit = 100 *1024;
+size_t SmartLimit = 100 *1024;
 
-/*
-    Лучше всѣго сжимается текст
-    Берём степень сжатія текста в 99% (объём распакованных данных в 100 раз больше)
-    Берём примѣрный порог использованія памяти в 10МБ (в этот объём должы влезть распакованные данные)
-    Дѣлим 10МБ на 100 и получаем 100 КБ
-    Упакованные данные размѣром до 100 КБ можно спокойно обрабатывать в памяти
-
-    В дальнейшем этот показатель всё же будет вынесен в параметр командной строки
-*/
+void CV8File::SetSmartUnpackLimit(size_t limit)
+{
+    SmartLimit = limit;
+}
 
 int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesystem::path &elem_path)
 {
@@ -600,9 +594,9 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
 
             boost::filesystem::ofstream out(elem_path, std::ios_base::binary);
             out.write(out_data, out_data_size);
-			
+
         }
-		
+
 		free(out_data);
 
     }
@@ -680,7 +674,7 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
             // TODO: Зачем это нужно??
             //ReadBlockData(file, NULL, o_tmp, &elem.DataSize);
         }
-		
+
 		delete [] elem.pHeader;
 
      } // for i = ..ElemsNum
@@ -975,7 +969,7 @@ bool CV8File::IsV8File(std::basic_ifstream<char> &file)
     stBlockHeader BlockHeader;
 
     stBlockHeader *pBlockHeader = &BlockHeader;
-	
+
 	memset(pBlockHeader, 0, sizeof(BlockHeader));
 
     std::ifstream::pos_type offset = file.tellg();

@@ -160,6 +160,8 @@ public:
 
 	static int PackElem(CV8Elem &pElem);
 
+	static void SetSmartUnpackLimit(size_t limit);
+
 
 	CV8File();
 	CV8File(char *pFileData, bool boolUndeflate = true);

@@ -4,6 +4,7 @@
 #include "V8File.h"
 #include "version.h"
 #include <iostream>
+#include <string>
 
 using namespace std;
 
@@ -23,15 +24,68 @@ void usage()
 	cout << "  -D[EFLATE]    in_filename        filename.data" << endl;
 	cout << "  -E[XAMPLE]" << endl;
 	cout << "  -BAT" << endl;
-	cout << "  -P[ARSE]      in_filename        out_dirname" << endl;
+	cout << "  -P[ARSE]      in_filename        out_dirname    [--memory-limit=LIMIT]*" << endl;
 	cout << "  -B[UILD]      in_dirname         out_filename" << endl;
 	cout << "  -V[ERSION]" << endl;
+	cout << endl;
+	cout << "  --memory-limit (in KiB) sets the maximum size of the files" << endl
+         << "                          able to be processed in memory." << endl
+         << "                          Other data will be processed throw disk." << endl
+    ;
 }
 
 void version()
 {
 	cout << V8P_VERSION << endl;
 }
+
+//++ dmpas Issue6: Затычка. В будущем переделать на Boost.Options
+bool TryMemoryLimit(int argc, char **argv)
+{
+    if (argc < 5) {
+        /* Нет параметра - нет вопросов */
+        return true;
+    }
+
+    const string param_name("--memory-limit");
+
+    string arg4(argv[4]);
+    size_t pos = arg4.find(param_name);
+    if (pos == string::npos) {
+        /* Есть параметр, но не тот */
+        return false;
+    }
+
+    pos = param_name.size();
+
+    string use_param;
+    if (pos == arg4.size()) {
+        /* формат --memory-limit LIMIT */
+        if (argc < 6) {
+            /* не задан LIMIT */
+            return false;
+        }
+
+        use_param = argv[5];
+
+    } else
+    if (arg4[pos] == '=') {
+        /* формат --memory-limit=LIMIT */
+        use_param = arg4.substr(pos + 1);
+    } else {
+        /* нераспознаваемо */
+        return false;
+    }
+
+    long limit = strtol(use_param.c_str(), NULL, 10);
+
+    if (limit > 0 && limit < (LONG_MAX / 1024)) {
+        CV8File::SetSmartUnpackLimit(limit * 1024);
+        return true;
+    }
+    return false;
+}
+//-- dmpas Issue6
 
 int main(int argc, char* argv[])
 {
@@ -85,6 +139,11 @@ int main(int argc, char* argv[])
 	}
 
 	if (cur_mode == "-parse" || cur_mode == "-p") {
+
+        if (!TryMemoryLimit(argc, argv)) {
+            usage();
+            return 1;
+        }
 
 		CV8File V8File;
 		ret = V8File.Parse(argv[2], argv[3]);
