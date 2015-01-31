@@ -31,7 +31,9 @@ DEF_RELEASE = ../bin/Release/libv8container.def
 SHAREDINT_RELEASE = ../bin/Release/libv8container.a
 OUT_RELEASE = ../bin/Release/libv8container.so
 
-OBJ_RELEASE = $(OBJDIR_RELEASE)/v8container.o $(OBJDIR_RELEASE)/V8Raw.o
+OBJ_RELEASE = $(OBJDIR_RELEASE)/v8container.o $(OBJDIR_RELEASE)/V8Raw.o \
+		$(OBJDIR_RELEASE)/DeflateStream.o \
+		$(OBJDIR_RELEASE)/InflateStream.o
 
 all: release
 
@@ -54,6 +56,12 @@ $(OBJDIR_RELEASE)/v8container.o: v8container.cpp
 
 $(OBJDIR_RELEASE)/V8Raw.o: V8Raw.cpp
 	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c V8Raw.cpp -o $(OBJDIR_RELEASE)/V8Raw.o
+
+$(OBJDIR_RELEASE)/DeflateStream.o: DeflateStream.cpp
+	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c DeflateStream.cpp -o $(OBJDIR_RELEASE)/DeflateStream.o
+
+$(OBJDIR_RELEASE)/InflateStream.o: InflateStream.cpp
+	$(CXX) $(CFLAGS_RELEASE) $(INC_RELEASE) -c InflateStream.cpp -o $(OBJDIR_RELEASE)/InflateStream.o
 
 clean_release: 
 	rm -f $(OBJ_RELEASE) $(OUT_RELEASE)
