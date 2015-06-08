@@ -79,13 +79,13 @@ int CV8File::Inflate(const std::string &in_filename, const std::string &out_file
     int ret;
 
     boost::filesystem::path inf(in_filename);
-    boost::filesystem::ifstream in_file(inf);
+    boost::filesystem::ifstream in_file(inf, std::ios_base::binary);
 
     if (!in_file)
         return V8UNPACK_INFLATE_IN_FILE_NOT_FOUND;
 
     boost::filesystem::path ouf(out_filename);
-    boost::filesystem::ofstream out_file(ouf);
+    boost::filesystem::ofstream out_file(ouf, std::ios_base::binary);
 
     if (!out_file)
         return V8UNPACK_INFLATE_OUT_FILE_NOT_CREATED;
@@ -112,7 +112,7 @@ int CV8File::Deflate(const std::string &in_filename, const std::string &out_file
         return V8UNPACK_DEFLATE_IN_FILE_NOT_FOUND;
 
     boost::filesystem::path ouf(out_filename);
-    boost::filesystem::ofstream out_file(ouf);
+    boost::filesystem::ofstream out_file(ouf, std::ios_base::binary);
 
     if (!out_file)
         return V8UNPACK_DEFLATE_OUT_FILE_NOT_CREATED;
@@ -146,7 +146,7 @@ int CV8File::Deflate(std::basic_ifstream<char> &source, std::basic_ofstream<char
 
     // compress until end of file
     do {
-        strm.avail_in = source.readsome(reinterpret_cast<char *>(in), CHUNK);
+        strm.avail_in = source.read(reinterpret_cast<char *>(in), CHUNK).gcount();
         if (source.bad()) {
             (void)deflateEnd(&strm);
             return Z_ERRNO;
@@ -202,7 +202,7 @@ int CV8File::Inflate(std::basic_ifstream<char> &source, std::basic_ofstream<char
         return ret;
 
     do {
-        strm.avail_in = source.readsome(reinterpret_cast<char *>(in), CHUNK);
+        strm.avail_in = source.read(reinterpret_cast<char *>(in), CHUNK).gcount();
         if (source.bad()) {
             (void)inflateEnd(&strm);
             return Z_ERRNO;
@@ -459,7 +459,7 @@ int CV8File::LoadFile(char *pFileData, ULONG FileDataSize, bool boolInflate, boo
 
     if (InflateBuffer)
         free(InflateBuffer);
-		
+
 	delete [] pElemsAddrs;
 
     return ret;
@@ -600,9 +600,9 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
 
             boost::filesystem::ofstream out(elem_path, std::ios_base::binary);
             out.write(out_data, out_data_size);
-			
+
         }
-		
+
 		free(out_data);
 
     }
@@ -680,7 +680,7 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
             // TODO: Зачем это нужно??
             //ReadBlockData(file, NULL, o_tmp, &elem.DataSize);
         }
-		
+
 		delete [] elem.pHeader;
 
      } // for i = ..ElemsNum
@@ -714,7 +714,7 @@ int CV8File::UnpackToFolder(const std::string &filename_in, const std::string &d
         return -1;
     }
 
-    size_t sz_r = file_in.readsome(reinterpret_cast<char*>(pFileData), FileDataSize);
+    size_t sz_r = file_in.read(reinterpret_cast<char*>(pFileData), FileDataSize).gcount();
     if (sz_r != FileDataSize) {
         std::cerr << "UnpackToFolder. Error in reading file!" << std::endl;
         return sz_r;
@@ -975,7 +975,7 @@ bool CV8File::IsV8File(std::basic_ifstream<char> &file)
     stBlockHeader BlockHeader;
 
     stBlockHeader *pBlockHeader = &BlockHeader;
-	
+
 	memset(pBlockHeader, 0, sizeof(BlockHeader));
 
     std::ifstream::pos_type offset = file.tellg();
@@ -1303,7 +1303,7 @@ int CV8File::LoadFileFromFolder(const std::string &dirname)
             elem.pData = new char[elem.DataSize];
 
             boost::filesystem::ifstream file_in(current_file, std::ios_base::binary);
-            file_in.readsome(reinterpret_cast<char *>(elem.pData), elem.DataSize);
+            file_in.read(reinterpret_cast<char *>(elem.pData), elem.DataSize);
         }
 
         Elems.push_back(elem);
