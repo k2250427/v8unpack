@@ -37,6 +37,9 @@
 			<Add option="-Wall" />
 		</Compiler>
 		<Linker>
+			<Add option="-static" />
+			<Add option="-static-libgcc" />
+			<Add option="-static-libstdc++" />
 			<Add library="z" />
 			<Add library="boost_filesystem" />
 			<Add library="boost_system" />

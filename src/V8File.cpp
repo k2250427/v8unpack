@@ -526,8 +526,20 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
             ret = CV8File::Inflate(inf, out);
 
             if (ret) {
-                /* TODO: Внятная ошибка */
-                return ret;
+                // Файл не распаковывается - записываем, как есть
+                inf.seekg(0, std::ios_base::beg);
+
+                do {
+
+                    const int block_size = 4096;
+                    char data[block_size]; // TODO: Оценить размер блока
+                    int data_size = inf.read(data, block_size).gcount();
+
+                    if (data_size != 0)
+                        out.write(data, data_size);
+
+                } while (inf);
+
             }
 
             inf.close();
@@ -577,11 +589,11 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
         ret = CV8File::Inflate(source_data, &out_data, uDataSize, &out_data_size);
         if (ret) {
 
-            delete [] out_data;
-            delete [] source_data;
+            // файл не распаковывается - записываем, как есть
+            out_data = source_data;
+            out_data_size = uDataSize;
 
-            /* TODO: Внятная ошибка */
-            return ret;
+            source_data = NULL;
         }
 
         delete [] source_data;
