@@ -21,6 +21,23 @@ Windows, POSIX
 Project for [codelite IDE](http://www.codelite.org/)  
 Project for [Codeblocks IDE](http://codeblocks.org/)
 
+## Build
+
+Артефакты/релизы можно скачать с [build-server проекта](https://build.batanov.me/job/v8unpack-win/)
+
+[Прямая ссылка на последнюю успешную сборку win32](https://build.batanov.me/view/e8-script/job/v8unpack-win/label=mingw32/lastSuccessfulBuild/artifact/bin/Release/*zip*/v8unpack.zip)
+
+[Прямая ссылка на последнюю успешную сборку win64](https://build.batanov.me/view/e8-script/job/v8unpack-win/label=mingw64/lastSuccessfulBuild/artifact/bin/Release/*zip*/v8unpack.zip)
+
+### Ubuntu/Debian
+
+```
+git clone https://github.com/xDrivenDevelopment/v8unpack-console.git
+sudo apt-get install gcc make libboost-all-dev
+cd v8unpack-console 
+make
+```
+
 ## Version 3.0
 
 - Оптимизирована сборка .cf файла ключ -B[UILD]. В версии 2.0 сборка корневого контейнера происходила в оперативной памяти.
