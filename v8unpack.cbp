@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-parse small.cf dsmall" />
+				<Option parameters="-i 1cv8.cfu inflated.txt " />
 				<Compiler>
 					<Add option="-pg" />
 					<Add option="-g" />
@@ -37,6 +37,9 @@
 			<Add option="-Wall" />
 		</Compiler>
 		<Linker>
+			<Add option="-static" />
+			<Add option="-static-libgcc" />
+			<Add option="-static-libstdc++" />
 			<Add library="z" />
 			<Add library="boost_filesystem" />
 			<Add library="boost_system" />

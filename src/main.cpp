@@ -57,14 +57,14 @@ int main(int argc, char* argv[])
 	if (cur_mode == "-inflate" || cur_mode == "-i" || cur_mode == "-und" || cur_mode == "-undeflate") {
 
 		CV8File V8File;
-		V8File.Inflate(argv[2], argv[3]);
+		V8File.Inflate(std::string(argv[2]), std::string(argv[3]));
 		return ret;
 	}
 
 	if (cur_mode == "-deflate" || cur_mode == "-d") {
 
 		CV8File V8File;
-		ret = V8File.Deflate(argv[2], argv[3]);
+		ret = V8File.Deflate(std::string(argv[2]), std::string(argv[3]));
 		return ret;
 	}
 
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
 	if (cur_mode == "-unpack" || cur_mode == "-u" || cur_mode == "-unp") {
 
 		CV8File V8File;
-		ret = V8File.UnpackToFolder(argv[2], argv[3], argv[4], true);
+		ret = V8File.UnpackToFolder(std::string(argv[2]), std::string(argv[3]), argv[4], true);
 		return ret;
 	}
 
