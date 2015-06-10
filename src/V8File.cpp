@@ -627,6 +627,10 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
 {
     int ret = 0;
 
+    if (!IsV8File(file)) {
+        return V8UNPACK_NOT_V8_FILE;
+    }
+
     boost::filesystem::path p_dir(directory);
 
     if (!boost::filesystem::exists(p_dir)) {
@@ -634,10 +638,6 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
             std::cerr << "UnpackToDirectoryNoLoad. Error in creating directory!" << std::endl;
             return ret;
         }
-    }
-
-    if (!IsV8File(file)) {
-        return V8UNPACK_NOT_V8_FILE;
     }
 
     file.read((char*)&FileHeader, sizeof(FileHeader));
