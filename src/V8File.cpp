@@ -636,6 +636,10 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
         }
     }
 
+    if (!IsV8File(file)) {
+        return V8UNPACK_NOT_V8_FILE;
+    }
+
     file.read((char*)&FileHeader, sizeof(FileHeader));
 
     stBlockHeader BlockHeader;
@@ -1170,6 +1174,11 @@ int CV8File::Parse(const std::string &filename_in, const std::string &dirname, i
     file_in.seekg(0, std::ios_base::beg);
 
     ret = UnpackToDirectoryNoLoad(dirname, file_in, FileDataSize);
+
+    if (ret == V8UNPACK_NOT_V8_FILE) {
+        std::cerr << "UnpackToFolder. This is not V8 file!" << std::endl;
+        return ret;
+    }
 
     std::cout << "LoadFile: ok" << std::endl;
 
