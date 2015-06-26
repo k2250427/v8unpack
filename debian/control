@@ -1,0 +1,14 @@
+Source: v8unpack
+Section: utils
+Priority: optional
+Maintainer: dmpas <sergey.batanov@dmpas.ru>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.4
+Homepage: https://github.com/dmpas/v8unpack
+Vcs-Git: https://github.com/dmpas/v8unpack.git
+#Vcs-Browser: http://git.debian.org/?p=collab-maint/v8unpack.git;a=summary
+
+Package: v8unpack
+Architecture: i386 amd64 
+Depends:
+Description: Enterprise 8 unpack tool 
