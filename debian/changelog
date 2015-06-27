@@ -1,5 +1,5 @@
-v8unpack (3.0.33-1) unstable; urgency=low
+v8unpack (3.0.33-4) trusty; urgency=low
 
-  * Initial release 
+  * Corrected build dependencies: zlib added 
 
- -- dmpas <sergey.batanov@dmpas.ru>  Fri, 26 Jun 2015 20:59:52 +0300
+ -- Sergey Batanov <sergey.batanov@dmpas.ru>  Sun, 28 Jun 2015 14:30:52 +0300
