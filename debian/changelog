@@ -1,0 +1,12 @@
+v8unpack (3.0.36-1) trusty; urgency=low
+
+  * Corrected installation binary path 
+  * Updated version number
+
+ -- Sergey Batanov <sergey.batanov@dmpas.ru>  Sun, 28 Jun 2015 18:07:00 +0300
+
+v8unpack (3.0.33-4) trusty; urgency=low
+
+  * Corrected build dependencies: zlib added 
+
+ -- Sergey Batanov <sergey.batanov@dmpas.ru>  Sun, 28 Jun 2015 14:30:52 +0300

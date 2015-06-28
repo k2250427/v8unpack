@@ -1,0 +1,9 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: v8unpack
+Source: https://github.com/dmpas/v8unpack 
+
+Files: *
+Copyright: 2008       Denis Demidov 
+           2014-2015  Sergey Batanov <sergey.batanov@dmpas.ru>
+License: No License
+

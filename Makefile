@@ -30,11 +30,12 @@ DEP_RELEASE =
 OUT_RELEASE = bin/Release/v8unpack
 
 OBJ_RELEASE = $(OBJDIR_RELEASE)/src/V8File.o $(OBJDIR_RELEASE)/src/main.o
-PREFIX=/usr/local
+PREFIX=$(DESTDIR)/usr/bin
 
 all: release
 
 install:
+	test -d $(PREFIX) || mkdir -p $(PREFIX)
 	cp bin/Release/v8unpack $(PREFIX)/v8unpack
 
 uninstall:
