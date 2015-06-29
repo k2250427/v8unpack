@@ -32,10 +32,9 @@ Project for [Codeblocks IDE](http://codeblocks.org/)
 ### Ubuntu/Debian
 
 ```
-git clone https://github.com/xDrivenDevelopment/v8unpack-console.git
-sudo apt-get install gcc make libboost-all-dev
-cd v8unpack-console 
-make
+sudo apt-add-repository ppa:dmpas/e8
+sudo apt-get update
+sudo apt-get install v8unpack
 ```
 
 ## Version 3.0
