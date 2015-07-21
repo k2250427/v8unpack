@@ -19,6 +19,7 @@
 #include "V8File.h"
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <iostream>
 
 #ifndef MAX_PATH
 #define MAX_PATH (260)
