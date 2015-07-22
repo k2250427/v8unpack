@@ -37,6 +37,14 @@ sudo apt-get update
 sudo apt-get install v8unpack
 ```
 
+### Fedora\Centos
+```
+cd /etc/yum.repos.d/
+sudo wget http://download.opensuse.org/repositories/home:/pumbaEO/Fedora_22/home:pumbaEO.repo
+sudo dnf install v8unpack
+```
+
+
 ## Version 3.0
 
 - Оптимизирована сборка .cf файла ключ -B[UILD]. В версии 2.0 сборка корневого контейнера происходила в оперативной памяти.
