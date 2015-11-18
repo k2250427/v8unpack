@@ -9,6 +9,9 @@ Source0:        v8unpack-3.0.tar.gz
 
 BuildRequires:  zlib-devel, boost-devel
 
+# workaround for rpm 4.13
+%define _empty_manifest_terminate_build 0
+
 %description
 Enterprise 8 unpack tool
 
