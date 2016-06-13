@@ -15,3 +15,5 @@ Makefile
 /obj
 /bin
 gmon.out
+/build
+
