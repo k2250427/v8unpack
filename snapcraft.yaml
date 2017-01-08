@@ -1,0 +1,18 @@
+name: v8unpack
+version: '3.0.38'
+summary: Enterprise 8 unpack tool
+description: Unpacks CF, EPF, ERF and other Enterprise 8 formats.
+grade: stable
+confinement: strict
+
+parts:
+  v8unpack:
+    plugin: make
+    source: https://github.com/dmpas/v8unpack
+    source-type: git
+    build-packages: [libboost-filesystem-dev, libboost-system-dev]
+
+apps:
+  v8unpack:
+    command: v8unpack
+
