@@ -8,7 +8,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 /**
-    2014-2016       dmpas           sergey(dot)batanov(at)dmpas(dot)ru
+    2014-2017       dmpas           sergey(dot)batanov(at)dmpas(dot)ru
  */
 
 // V8File.h: interface for the CV8File class.

@@ -19,7 +19,7 @@ Windows, POSIX
 ## Environment
 
 Project for [codelite IDE](http://www.codelite.org/)  
-Project for [Codeblocks IDE](http://codeblocks.org/)
+Project for [Codeblocks IDE](http://codeblocks.org/)  
 CMake
 
 ## Build
