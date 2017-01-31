@@ -1537,10 +1537,8 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
             file_in.read(reinterpret_cast<char*>(pElem.pData), pElem.DataSize);
         }
 
-        if (!dont_pack) {
-            //Сжимаем данные
-            PackElem(pElem);
-        }
+        //Сжимаем данные
+        PackElem(pElem, !dont_pack);
 
         //Добавляем элемент в TOC
         pTOC[ElemNum].elem_header_addr = cur_block_addr;
@@ -1582,45 +1580,62 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
     return 0;
 }
 
-int CV8File::PackElem(CV8Elem &pElem)
+int CV8File::PackElem(CV8Elem &pElem, bool deflate)
 {
-    char *DeflateBuffer = NULL;
-    ULONG DeflateSize = 0;
+	char *DeflateBuffer = NULL;
+	ULONG DeflateSize = 0;
 
-    char *DataBuffer = NULL;
-    ULONG DataBufferSize = 0;
+	char *DataBuffer = NULL;
+	ULONG DataBufferSize = 0;
 
-    int ret = 0;
-    if (!pElem.IsV8File) {
-        ret = Deflate(pElem.pData, &DeflateBuffer, pElem.DataSize, &DeflateSize);
-        if (ret)
-            return ret;
+	int ret = 0;
+	if (!pElem.IsV8File) {
 
-        delete[] pElem.pData;
-        pElem.pData = new char[DeflateSize];
-        pElem.DataSize = DeflateSize;
-        memcpy(pElem.pData, DeflateBuffer, DeflateSize);
+		if (deflate) {
+			ret = Deflate(pElem.pData, &DeflateBuffer, pElem.DataSize, &DeflateSize);
+			if (ret) {
+				return ret;
+			}
+
+			delete[] pElem.pData;
+			pElem.pData = new char[DeflateSize];
+			pElem.DataSize = DeflateSize;
+			memcpy(pElem.pData, DeflateBuffer, DeflateSize);
+		}
+
     } else {
-        pElem.UnpackedData.GetData(&DataBuffer, &DataBufferSize);
 
-        ret = Deflate(DataBuffer, &DeflateBuffer, DataBufferSize, &DeflateSize);
-        if (ret)
-            return ret;
+		pElem.UnpackedData.GetData(&DataBuffer, &DataBufferSize);
 
-        //pElem.UnpackedData = CV8File();
-        pElem.IsV8File = false;
+		if (deflate) {
 
-        pElem.pData = new char[DeflateSize];
-        pElem.DataSize = DeflateSize;
-        memcpy(pElem.pData, DeflateBuffer, DeflateSize);
+			ret = Deflate(DataBuffer, &DeflateBuffer, DataBufferSize, &DeflateSize);
+			if (ret) {
+				return ret;
+			}
 
+			pElem.pData = new char[DeflateSize];
+			pElem.DataSize = DeflateSize;
+			memcpy(pElem.pData, DeflateBuffer, DeflateSize);
+
+		} else {
+
+			pElem.pData = new char[DataBufferSize];
+			pElem.DataSize = DataBufferSize;
+			memcpy(pElem.pData, DataBuffer, DataBufferSize);
+
+		}
+
+		pElem.IsV8File = false;
     }
 
-    if (DeflateBuffer)
-        free(DeflateBuffer);
+	if (DeflateBuffer) {
+		free(DeflateBuffer);
+	}
 
-    if (DataBuffer)
-        free(DataBuffer);
+	if (DataBuffer) {
+		free(DataBuffer);
+	}
 
     return 0;
 }

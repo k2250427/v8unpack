@@ -191,8 +191,8 @@ handler_t getRunMode(char *argv[], int argc, int &arg_base, bool &allow_listfile
 
 		bool dont_pack = false;
 
-		if (argc > 2) {
-			string arg2(argv[2]);
+		if (argc > arg_base) {
+			string arg2(argv[arg_base]);
 			transform(arg2.begin(), arg2.end(), arg2.begin(), ::tolower);
 			if (arg2 == "-n" || arg2 == "-nopack") {
 				arg_base++;

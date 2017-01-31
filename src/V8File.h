@@ -158,7 +158,7 @@ public:
 
 	int SaveFileToFolder(const std::string &dirname) const;
 
-	static int PackElem(CV8Elem &pElem);
+	static int PackElem(CV8Elem &pElem, bool deflate = true);
 
 
 	CV8File();
