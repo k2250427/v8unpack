@@ -12,7 +12,7 @@ LD = g++
 WINDRES = 
 
 INC = 
-CFLAGS = -Wall
+CFLAGS = -Wall -std=c++11
 RESINC = 
 LIBDIR = 
 LIB = -static -lz -lboost_filesystem -lboost_system

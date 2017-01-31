@@ -10,6 +10,7 @@ else()
 	set(RC_FILE "")
 endif()
 
+set(CMAKE_CXX_STANDARD 11)
 add_executable (v8unpack src/main.cpp src/V8File.cpp ${RC_FILE})
 
 set (Boost_USE_STATIC_LIBS ON)
