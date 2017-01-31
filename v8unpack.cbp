@@ -44,6 +44,9 @@
 			<Add library="boost_filesystem" />
 			<Add library="boost_system" />
 		</Linker>
+		<Unit filename="VersionInfo.rc">
+			<Option compilerVar="WINDRES" />
+		</Unit>
 		<Unit filename="src/V8File.cpp" />
 		<Unit filename="src/V8File.h" />
 		<Unit filename="src/main.cpp" />
