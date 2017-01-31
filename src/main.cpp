@@ -18,10 +18,13 @@
 #include "version.h"
 #include <iostream>
 #include <algorithm>
+#include <sstream>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/fstream.hpp>
 
 using namespace std;
 
-int usage(char **argv)
+int usage(vector<string> &argv)
 {
 	cout << endl;
 	cout << "V8Upack Version " << V8P_VERSION
@@ -44,48 +47,48 @@ int usage(char **argv)
 	return 0;
 }
 
-int version(char ** argv)
+int version(vector<string> &argv)
 {
 	cout << V8P_VERSION << endl;
 	return 0;
 }
 
-int inflate(char **argv)
+int inflate(vector<string> &argv)
 {
 	CV8File V8File;
-	V8File.Inflate(std::string(argv[0]), std::string(argv[1]));
-	return 0;
-}
-
-int deflate(char **argv)
-{
-	CV8File V8File;
-	int ret = V8File.Deflate(std::string(argv[0]), std::string(argv[1]));
+	int ret = V8File.Inflate(argv[0], argv[1]);
 	return ret;
 }
 
-int unpack(char **argv)
+int deflate(vector<string> &argv)
 {
 	CV8File V8File;
-	int ret = V8File.UnpackToFolder(std::string(argv[0]), std::string(argv[1]), argv[2], true);
+	int ret = V8File.Deflate(argv[0], argv[1]);
 	return ret;
 }
 
-int pack(char **argv)
+int unpack(vector<string> &argv)
+{
+	CV8File V8File;
+	int ret = V8File.UnpackToFolder(argv[0], argv[1], argv[2], true);
+	return ret;
+}
+
+int pack(vector<string> &argv)
 {
 	CV8File V8File;
 	int ret = V8File.PackFromFolder(argv[0], argv[1]);
 	return ret;
 }
 
-int parse(char **argv)
+int parse(vector<string> &argv)
 {
 	CV8File V8File;
 	int ret = V8File.Parse(argv[0], argv[1]);
 	return ret;
 }
 
-int bat(char **argv)
+int bat(vector<string> &argv)
 {
 	cout << "if %1 == P GOTO PACK" << endl;
 	cout << "if %1 == p GOTO PACK" << endl;
@@ -109,7 +112,7 @@ int bat(char **argv)
 	return 0;
 }
 
-int example(char **argv)
+int example(vector<string> &argv)
 {
 	cout << "" << endl;
 	cout << "" << endl;
@@ -129,7 +132,7 @@ int example(char **argv)
 	return 0;
 }
 
-int build(char **argv)
+int build(vector<string> &argv)
 {
 	const bool dont_pack = false;
 	CV8File V8File;
@@ -137,7 +140,7 @@ int build(char **argv)
 	return ret;
 }
 
-int build_nopack(char **argv)
+int build_nopack(vector<string> &argv)
 {
 	const bool dont_pack = true;
 	CV8File V8File;
@@ -145,19 +148,22 @@ int build_nopack(char **argv)
 	return ret;
 }
 
-typedef int (*handler_t)(char **argv);
+typedef int (*handler_t)(vector<string> &argv);
 
-handler_t getRunMode(char *argv[], int argc, int &arg_base)
+handler_t getRunMode(char *argv[], int argc, int &arg_base, bool &allow_listfile)
 {
 	if (argc < 2) {
+		allow_listfile = false;
 		return usage;
 	}
 
+	allow_listfile = true;
 	string cur_mode(argv[1]);
 	transform(cur_mode.begin(), cur_mode.end(), cur_mode.begin(), ::tolower);
 
 	arg_base = 2;
 	if (cur_mode == "-version" || cur_mode == "-v") {
+		allow_listfile = false;
 		return version;
 	}
 
@@ -196,6 +202,7 @@ handler_t getRunMode(char *argv[], int argc, int &arg_base)
 		return dont_pack ? build_nopack : build;
 	}
 
+	allow_listfile = false;
 	if (cur_mode == "-bat") {
 		return bat;
 	}
@@ -207,19 +214,76 @@ handler_t getRunMode(char *argv[], int argc, int &arg_base)
 	return nullptr;
 }
 
+void read_param_file(const char *filename, vector< vector<string> > &list)
+{
+	boost::filesystem::ifstream in(filename);
+	string line;
+	while (getline(in, line)) {
+
+		vector<string> current_line;
+
+		stringstream ss;
+		ss.str(line);
+
+		string item;
+		while (getline(ss, item, ';')) {
+			current_line.push_back(item);
+		}
+
+		while (current_line.size() < 3) {
+			// Дополним пустыми строками, чтобы избежать лишних проверок
+			current_line.push_back("");
+		}
+
+		list.push_back(current_line);
+	}
+}
+
 int main(int argc, char* argv[])
 {
 	int arg_base = 1;
-	handler_t handler = getRunMode(argv, argc, arg_base);
+	bool allow_listfile = false;
+	handler_t handler = getRunMode(argv, argc, arg_base, allow_listfile);
+
+	vector<string> cli_args;
 
 	if (handler == nullptr) {
-		usage(nullptr);
+		usage(cli_args);
 		return 1;
 	}
 
-	int ret = handler(&argv[arg_base]);
+	if (allow_listfile && arg_base <= argc) {
+		string a_list(argv[arg_base]);
+		transform(a_list.begin(), a_list.end(), a_list.begin(), ::tolower);
+		if (a_list == "-list" || a_list == "-l") {
+			// Передан файл с параметрами
+			vector< vector<string> > param_list;
+			read_param_file(argv[arg_base + 1], param_list);
+
+			int ret = 0;
+
+			for (auto argv_from_file : param_list) {
+				int ret1 = handler(argv_from_file);
+				if (ret1 != 0 && ret == 0) {
+					ret = ret1;
+				}
+			}
+
+			return ret;
+		}
+	}
+
+	for (int i = arg_base; i < argc; i++) {
+		cli_args.push_back(string(argv[i]));
+	}
+	while (cli_args.size() < 3) {
+		// Дополним пустыми строками, чтобы избежать лишних проверок
+		cli_args.push_back("");
+	}
+
+	int ret = handler(cli_args);
 	if (ret == SHOW_USAGE) {
-		usage(nullptr);
+		usage(cli_args);
 	}
 	return ret;
 }

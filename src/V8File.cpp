@@ -707,7 +707,7 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
     return ret;
 }
 
-int CV8File::UnpackToFolder(const std::string &filename_in, const std::string &dirname, char *UnpackElemWithName, bool print_progress)
+int CV8File::UnpackToFolder(const std::string &filename_in, const std::string &dirname, const std::string &UnpackElemWithName, bool print_progress)
 {
     char *pFileData = NULL;
 
@@ -791,7 +791,7 @@ int CV8File::UnpackToFolder(const std::string &filename_in, const std::string &d
         GetElemName(*elem, ElemName, &ElemNameLen);
 
         // если передано имя блока для распаковки, пропускаем все остальные
-        if (UnpackElemWithName && strcmp(UnpackElemWithName, ElemName))
+        if (!UnpackElemWithName.empty() && UnpackElemWithName == ElemName)
             continue;
 
         filename_out = dirname;
