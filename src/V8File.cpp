@@ -1331,23 +1331,6 @@ int CV8File::LoadFileFromFolder(const std::string &dirname)
 
 }
 
-int CV8File::Build(const std::string &dirname, const std::string &filename, int level)
-{
-    int load = LoadFileFromFolder(dirname);
-    if (load != 0)
-        return load;
-
-    std::cout << "LoadFileFromFolder: ok" << std::endl;
-
-    Pack();
-
-    std::cout << "Pack: ok" << std::endl;
-
-    SaveFile(filename);
-
-    return 0;
-}
-
 int CV8File::SaveFile(const std::string &filename)
 {
     boost::filesystem::ofstream file_out(filename, std::ios_base::binary);

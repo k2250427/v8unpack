@@ -77,7 +77,6 @@ public:
 	int GetData(char **DataBufer, ULONG *DataBuferSize) const;
 	int Pack();
 	int SaveFile(const std::string &filename);
-	int Build(const std::string &dirname, const std::string &filename, int level = 0);
 	int LoadFileFromFolder(const std::string &dirname);
 	int Parse(const std::string &filename, const std::string &dirname, int level = 0);
 
