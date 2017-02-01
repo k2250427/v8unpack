@@ -56,14 +56,14 @@ int version(vector<string> &argv)
 int inflate(vector<string> &argv)
 {
 	CV8File V8File;
-	int ret = V8File.Inflate(argv[0], argv[1]);
+	int ret = Inflate(argv[0], argv[1]);
 	return ret;
 }
 
 int deflate(vector<string> &argv)
 {
 	CV8File V8File;
-	int ret = V8File.Deflate(argv[0], argv[1]);
+	int ret = Deflate(argv[0], argv[1]);
 	return ret;
 }
 

@@ -77,16 +77,14 @@ public:
 	int GetData(char **DataBufer, ULONG *DataBuferSize) const;
 	int Pack();
 	int SaveFile(const std::string &filename);
-	int SetElemName(CV8Elem &Elem, const char *ElemName, UINT ElemNameLen);
 	int Build(const std::string &dirname, const std::string &filename, int level = 0);
 	int LoadFileFromFolder(const std::string &dirname);
-	int GetElemName(const CV8Elem &Elem, char* ElemName, UINT *ElemNameLen) const;
 	int Parse(const std::string &filename, const std::string &dirname, int level = 0);
 
 	static bool IsV8File(const char *pFileData, ULONG FileDataSize);
 	static bool IsV8File(std::basic_ifstream<char> &file);
 
-	int BuildCfFile(const std::string &dirname, const std::string &filename, bool dont_pack = false);
+	int BuildCfFile(const std::string &dirname, const std::string &filename, bool dont_deflate = false);
 
 	struct stFileHeader
 	{
@@ -132,15 +130,6 @@ public:
 		};
 	};
 
-	static int Deflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest);
-	static int Inflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest);
-
-	static int Deflate(const std::string &in_filename, const std::string &out_filename);
-	static int Inflate(const std::string &in_filename, const std::string &out_filename);
-
-	static int Deflate(const char* in_buf, char** out_buf, ULONG in_len, ULONG* out_len);
-	static int Inflate(const char* in_buf, char** out_buf, ULONG in_len, ULONG* out_len);
-
 	int LoadFile(char *pFileData, ULONG FileData, bool boolInflate = true, bool UnpackWhenNeed = false);
 	int UnpackToDirectoryNoLoad(const std::string &directory, std::basic_ifstream<char> &file, bool boolInflate = true, bool UnpackWhenNeed = false);
 
@@ -157,9 +146,6 @@ public:
 	int SaveBlockData(std::basic_ofstream<char> &file_out, const char *pBlockData, UINT BlockDataSize, UINT PageSize = 512);
 
 	int SaveFileToFolder(const std::string &dirname) const;
-
-	static int PackElem(CV8Elem &pElem, bool deflate = true);
-
 
 	CV8File();
 	CV8File(char *pFileData, bool boolUndeflate = true);
@@ -198,6 +184,10 @@ public:
 	CV8Elem();
 	~CV8Elem();
 
+	int Pack(bool deflate = true);
+	int SetName(const char *ElemName, UINT ElemNameLen);
+	int GetName(char* ElemName, UINT *ElemNameLen) const;
+
 	char	           *pHeader; // TODO: Утечка памяти
 	UINT	            HeaderSize;
 	char	           *pData; // TODO: Утечка памяти
@@ -207,3 +197,13 @@ public:
 	bool	            NeedUnpack;
 
 };
+
+int Deflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest);
+int Inflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest);
+
+int Deflate(const std::string &in_filename, const std::string &out_filename);
+int Inflate(const std::string &in_filename, const std::string &out_filename);
+
+int Deflate(const char* in_buf, char** out_buf, ULONG in_len, ULONG* out_len);
+int Inflate(const char* in_buf, char** out_buf, ULONG in_len, ULONG* out_len);
+

@@ -75,7 +75,7 @@ CV8Elem::~CV8Elem()
 
 
 
-int CV8File::Inflate(const std::string &in_filename, const std::string &out_filename)
+int Inflate(const std::string &in_filename, const std::string &out_filename)
 {
     int ret;
 
@@ -101,7 +101,7 @@ int CV8File::Inflate(const std::string &in_filename, const std::string &out_file
     return 0;
 }
 
-int CV8File::Deflate(const std::string &in_filename, const std::string &out_filename)
+int Deflate(const std::string &in_filename, const std::string &out_filename)
 {
 
     int ret;
@@ -126,7 +126,7 @@ int CV8File::Deflate(const std::string &in_filename, const std::string &out_file
     return 0;
 }
 
-int CV8File::Deflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest)
+int Deflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest)
 {
 
     int ret, flush;
@@ -183,7 +183,7 @@ int CV8File::Deflate(std::basic_ifstream<char> &source, std::basic_ofstream<char
     return Z_OK;
 
 }
-int CV8File::Inflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest)
+int Inflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest)
 {
     int ret;
     unsigned have;
@@ -244,7 +244,7 @@ int CV8File::Inflate(std::basic_ifstream<char> &source, std::basic_ofstream<char
 }
 
 
-int CV8File::Inflate(const char* in_buf, char** out_buf, ULONG in_len, ULONG* out_len)
+int Inflate(const char* in_buf, char** out_buf, ULONG in_len, ULONG* out_len)
 {
     int ret;
     unsigned have;
@@ -304,7 +304,7 @@ int CV8File::Inflate(const char* in_buf, char** out_buf, ULONG in_len, ULONG* ou
     return ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
 }
 
-int CV8File::Deflate(const char* in_buf, char** out_buf, ULONG in_len, ULONG* out_len)
+int Deflate(const char* in_buf, char** out_buf, ULONG in_len, ULONG* out_len)
 {
     int ret, flush;
     unsigned have;
@@ -384,7 +384,7 @@ int CV8File::LoadFile(char *pFileData, ULONG FileDataSize, bool boolInflate, boo
 
 
     UINT ElemsAddrsSize;
-    stElemAddr *pElemsAddrs = NULL;
+    stElemAddr *pElemsAddrs = nullptr;
     ReadBlockData(pFileData, pBlockHeader, (char*&)pElemsAddrs, &ElemsAddrsSize);
 
 
@@ -422,7 +422,7 @@ int CV8File::LoadFile(char *pFileData, ULONG FileDataSize, bool boolInflate, boo
             pBlockHeader = (stBlockHeader*) &pFileData[pElemsAddrs[i].elem_data_addr];
             ReadBlockData(pFileData, pBlockHeader, elem.pData, &elem.DataSize);
         } else
-            ReadBlockData(pFileData, NULL, elem.pData, &elem.DataSize);
+            ReadBlockData(pFileData, nullptr, elem.pData, &elem.DataSize);
 
         elem.UnpackedData.IsDataPacked = false;
 
@@ -435,13 +435,13 @@ int CV8File::LoadFile(char *pFileData, ULONG FileDataSize, bool boolInflate, boo
 
                 elem.NeedUnpack = false; // отложенная распаковка не нужна
                 delete[] elem.pData; //нераспакованные данные больше не нужны
-                elem.pData = NULL;
+                elem.pData = nullptr;
                 if (IsV8File(InflateBuffer, InflateSize)) {
                     ret = elem.UnpackedData.LoadFile(InflateBuffer, InflateSize, boolInflate);
                     if (ret)
                         break;
 
-                    elem.pData = NULL;
+                    elem.pData = nullptr;
                     elem.IsV8File = true;
                 } else {
                     elem.pData = new char[InflateSize];
@@ -524,7 +524,7 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
             out.open(inf_path, std::ios_base::binary);
             boost::filesystem::ifstream inf(tmp_path, std::ios_base::binary);
 
-            ret = CV8File::Inflate(inf, out);
+            ret = Inflate(inf, out);
 
             if (ret) {
                 // Файл не распаковывается - записываем, как есть
@@ -580,21 +580,21 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
         /* Имѣем полное право помѣстить файл в память */
 
         UINT uDataSize;
-        char *source_data = NULL;
+        char *source_data = nullptr;
 
         CV8File::ReadBlockData(file, &header, source_data, &uDataSize);
 
-        char *out_data = NULL;
+        char *out_data = nullptr;
         ULONG out_data_size = 0;
 
-        ret = CV8File::Inflate(source_data, &out_data, uDataSize, &out_data_size);
+        ret = Inflate(source_data, &out_data, uDataSize, &out_data_size);
         if (ret) {
 
             // файл не распаковывается - записываем, как есть
             out_data = source_data;
             out_data_size = uDataSize;
 
-            source_data = NULL;
+            source_data = nullptr;
         }
 
         delete [] source_data;
@@ -649,7 +649,7 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
     file.read((char*)&BlockHeader, sizeof(BlockHeader));
 
     UINT ElemsAddrsSize;
-    stElemAddr *pElemsAddrs = NULL;
+    stElemAddr *pElemsAddrs = nullptr;
     ReadBlockData(file, pBlockHeader, (char*&)pElemsAddrs, &ElemsAddrsSize);
 
     unsigned int ElemsNum = ElemsAddrsSize / stElemAddr::Size();
@@ -684,7 +684,7 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
         char ElemName[512];
         UINT ElemNameLen;
 
-        GetElemName(elem, ElemName, &ElemNameLen);
+        elem.GetName(ElemName, &ElemNameLen);
 
         boost::filesystem::path elem_path(p_dir / ElemName);
         elem_path = boost::filesystem::absolute(elem_path);
@@ -695,7 +695,7 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
             SmartUnpack(file, boolInflate && IsDataPacked, elem_path);
         } else {
             // TODO: Зачем это нужно??
-            //ReadBlockData(file, NULL, o_tmp, &elem.DataSize);
+            //ReadBlockData(file, nullptr, o_tmp, &elem.DataSize);
         }
 
 		delete [] elem.pHeader;
@@ -746,7 +746,7 @@ int CV8File::UnpackToFolder(const std::string &filename_in, const std::string &d
 	file.read((char*)&BlockHeader, sizeof(BlockHeader));
 
 	UINT ElemsAddrsSize;
-	stElemAddr *pElemsAddrs = NULL;
+	stElemAddr *pElemsAddrs = nullptr;
 	ReadBlockData(file, pBlockHeader, (char*&)pElemsAddrs, &ElemsAddrsSize);
 
 	unsigned int ElemsNum = ElemsAddrsSize / stElemAddr::Size();
@@ -781,7 +781,7 @@ int CV8File::UnpackToFolder(const std::string &filename_in, const std::string &d
 		char ElemName[512];
 		UINT ElemNameLen;
 
-		GetElemName(elem, ElemName, &ElemNameLen);
+		elem.GetName(ElemName, &ElemNameLen);
 
 		// если передано имя блока для распаковки, пропускаем все остальные
 		if (!UnpackElemWithName.empty() && UnpackElemWithName == ElemName)
@@ -857,11 +857,11 @@ int CV8File::ReadBlockData(char *pFileData, stBlockHeader *pBlockHeader, char *&
     DWORD data_size, page_size, next_page_addr;
     UINT read_in_bytes, bytes_to_read;
 
-    if (pBlockHeader != NULL) {
+    if (pBlockHeader != nullptr) {
         data_size = _httoi(pBlockHeader->data_size_hex);
         pBlockData = new char[data_size];
         if (!pBlockData) {
-            std::cerr << "ReadBlockData. BlockData == NULL." << std::endl;
+            std::cerr << "ReadBlockData. BlockData == nullptr." << std::endl;
             return -1;
         }
     } else
@@ -897,11 +897,11 @@ int CV8File::ReadBlockData(std::basic_ifstream<char> &file, stBlockHeader *pBloc
     UINT read_in_bytes, bytes_to_read;
 
     stBlockHeader Header;
-    if (pBlockHeader != NULL) {
+    if (pBlockHeader != nullptr) {
         data_size = _httoi(pBlockHeader->data_size_hex);
         pBlockData = new char[data_size];
         if (!pBlockData) {
-            std::cerr << "ReadBlockData. BlockData == NULL." << std::endl;
+            std::cerr << "ReadBlockData. BlockData == nullptr." << std::endl;
             return -1;
         }
         Header = *pBlockHeader;
@@ -941,7 +941,7 @@ int CV8File::ReadBlockData(std::basic_ifstream<char> &file, stBlockHeader *pBloc
     UINT read_in_bytes, bytes_to_read;
 
     stBlockHeader Header;
-    if (pBlockHeader != NULL) {
+    if (pBlockHeader != nullptr) {
         data_size = _httoi(pBlockHeader->data_size_hex);
         Header = *pBlockHeader;
         pBlockHeader = &Header;
@@ -1220,7 +1220,7 @@ int CV8File::SaveFileToFolder(const std::string &dirname) const
                 std::cout << ".";
         }
 
-        GetElemName(*elem, ElemName, &ElemNameLen);
+        elem->GetName(ElemName, &ElemNameLen);
 
         filename_out = dirname;
         filename_out += "/";
@@ -1247,26 +1247,26 @@ int CV8File::SaveFileToFolder(const std::string &dirname) const
     return ret;
 }
 
-int CV8File::GetElemName(const CV8Elem &Elem, char *ElemName, UINT *ElemNameLen) const
+int CV8Elem::GetName(char *ElemName, UINT *ElemNameLen) const
 {
-    *ElemNameLen = (Elem.HeaderSize - CV8Elem::stElemHeaderBegin::Size()) / 2;
-    for (UINT j = 0; j < *ElemNameLen * 2; j+=2)
-        ElemName[j/2] = Elem.pHeader[CV8Elem::stElemHeaderBegin::Size() + j];
+	*ElemNameLen = (HeaderSize - CV8Elem::stElemHeaderBegin::Size()) / 2;
+	for (UINT j = 0; j < *ElemNameLen * 2; j += 2)
+		ElemName[j / 2] = pHeader[CV8Elem::stElemHeaderBegin::Size() + j];
 
-    return 0;
+	return 0;
 }
 
 
-int CV8File::SetElemName(CV8Elem &Elem, const char *ElemName, UINT ElemNameLen)
+int CV8Elem::SetName(const char *ElemName, UINT ElemNameLen)
 {
-    UINT stElemHeaderBeginSize = CV8Elem::stElemHeaderBegin::Size();
+	UINT stElemHeaderBeginSize = CV8Elem::stElemHeaderBegin::Size();
 
-    for (UINT j = 0; j <ElemNameLen * 2; j+=2, stElemHeaderBeginSize+=2) {
-        Elem.pHeader[stElemHeaderBeginSize] = ElemName[j/2];
-        Elem.pHeader[stElemHeaderBeginSize + 1] = 0;
-    }
+	for (UINT j = 0; j < ElemNameLen * 2; j += 2, stElemHeaderBeginSize += 2) {
+		pHeader[stElemHeaderBeginSize] = ElemName[j/2];
+		pHeader[stElemHeaderBeginSize + 1] = 0;
+	}
 
-    return 0;
+	return 0;
 }
 
 
@@ -1301,7 +1301,7 @@ int CV8File::LoadFileFromFolder(const std::string &dirname)
 
         memset(elem.pHeader, 0, elem.HeaderSize);
 
-        SetElemName(elem, name.c_str(), name.size());
+        elem.SetName(name.c_str(), name.size());
 
         if (boost::filesystem::is_directory(current_file)) {
 
@@ -1407,7 +1407,7 @@ int CV8File::SaveFile(const std::string &filename)
 
 }
 
-int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_filename, bool dont_pack)
+int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_filename, bool dont_deflate)
 {
     //filename can't be empty
     if (!in_dirname.size()) {
@@ -1460,6 +1460,7 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
     boost::filesystem::ofstream file_out(out_filename, std::ios_base::binary);
     //Открываем выходной файл контейнер на запись
     if (!file_out) {
+        delete [] pTOC;
         std::cout << "SaveFile. Error in creating file!" << std::endl;
         return -1;
     }
@@ -1507,7 +1508,7 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
 
         memset(pElem.pHeader, 0, pElem.HeaderSize);
 
-        SetElemName(pElem, name.c_str(), name.size());
+        pElem.SetName(name.c_str(), name.size());
         if (boost::filesystem::is_directory(current_file)) {
 
             pElem.IsV8File = true;
@@ -1533,7 +1534,7 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
         }
 
         //Сжимаем данные
-        PackElem(pElem, !dont_pack);
+        pElem.Pack(!dont_deflate);
 
         //Добавляем элемент в TOC
         pTOC[ElemNum].elem_header_addr = cur_block_addr;
@@ -1551,9 +1552,9 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
 
         //Освобождаем память
         delete[] pElem.pData;
-        pElem.pData = NULL;
+        pElem.pData = nullptr;
         delete[] pElem.pHeader;
-        pElem.pHeader = NULL;
+        pElem.pHeader = nullptr;
         pElem.IsV8File = false;
         pElem.HeaderSize = 0;
         pElem.DataSize = 0;
@@ -1575,32 +1576,32 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
     return 0;
 }
 
-int CV8File::PackElem(CV8Elem &pElem, bool deflate)
+int CV8Elem::Pack(bool deflate)
 {
-	char *DeflateBuffer = NULL;
+	char *DeflateBuffer = nullptr;
 	ULONG DeflateSize = 0;
 
-	char *DataBuffer = NULL;
+	char *DataBuffer = nullptr;
 	ULONG DataBufferSize = 0;
 
 	int ret = 0;
-	if (!pElem.IsV8File) {
+	if (!IsV8File) {
 
 		if (deflate) {
-			ret = Deflate(pElem.pData, &DeflateBuffer, pElem.DataSize, &DeflateSize);
+			ret = Deflate(pData, &DeflateBuffer, DataSize, &DeflateSize);
 			if (ret) {
 				return ret;
 			}
 
-			delete[] pElem.pData;
-			pElem.pData = new char[DeflateSize];
-			pElem.DataSize = DeflateSize;
-			memcpy(pElem.pData, DeflateBuffer, DeflateSize);
+			delete[] pData;
+			pData = new char[DeflateSize];
+			DataSize = DeflateSize;
+			memcpy(pData, DeflateBuffer, DeflateSize);
 		}
 
-    } else {
+	} else {
 
-		pElem.UnpackedData.GetData(&DataBuffer, &DataBufferSize);
+		UnpackedData.GetData(&DataBuffer, &DataBufferSize);
 
 		if (deflate) {
 
@@ -1609,20 +1610,20 @@ int CV8File::PackElem(CV8Elem &pElem, bool deflate)
 				return ret;
 			}
 
-			pElem.pData = new char[DeflateSize];
-			pElem.DataSize = DeflateSize;
-			memcpy(pElem.pData, DeflateBuffer, DeflateSize);
+			pData = new char[DeflateSize];
+			DataSize = DeflateSize;
+			memcpy(pData, DeflateBuffer, DeflateSize);
 
 		} else {
 
-			pElem.pData = new char[DataBufferSize];
-			pElem.DataSize = DataBufferSize;
-			memcpy(pElem.pData, DataBuffer, DataBufferSize);
+			pData = new char[DataBufferSize];
+			DataSize = DataBufferSize;
+			memcpy(pData, DataBuffer, DataBufferSize);
 
 		}
 
-		pElem.IsV8File = false;
-    }
+		IsV8File = false;
+	}
 
 	if (DeflateBuffer) {
 		free(DeflateBuffer);
@@ -1632,15 +1633,15 @@ int CV8File::PackElem(CV8Elem &pElem, bool deflate)
 		free(DataBuffer);
 	}
 
-    return 0;
+	return 0;
 }
 
 int CV8File::Pack()
 {
-    char *DeflateBuffer = NULL;
+    char *DeflateBuffer = nullptr;
     ULONG DeflateSize = 0;
 
-    char *DataBuffer = NULL;
+    char *DataBuffer = nullptr;
     ULONG DataBufferSize = 0;
 
     int ret = 0;
