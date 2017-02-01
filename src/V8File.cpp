@@ -62,7 +62,6 @@ CV8Elem::CV8Elem(const CV8Elem &src)
 
 CV8Elem::CV8Elem()
 {
-
     IsV8File = false;
     HeaderSize = 0;
     DataSize = 0;
@@ -103,7 +102,6 @@ int Inflate(const std::string &in_filename, const std::string &out_filename)
 
 int Deflate(const std::string &in_filename, const std::string &out_filename)
 {
-
     int ret;
 
     boost::filesystem::path inf(in_filename);
@@ -500,7 +498,7 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
 
     int ret = 0;
 
-    size_t data_size = CV8File::_httoi(header.data_size_hex);
+    size_t data_size = _httoi(header.data_size_hex);
     if (!NeedUnpack || data_size > SmartLimit) {
         /* 1) Имѣем дѣло с условно большими данными - работаем через промежуточный файл */
         /* 2) Не нужна распаковка - пишем прямо в файл-приёмник */
@@ -563,10 +561,8 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
         src.open(src_path, std::ios_base::binary);
 
         if (CV8File::IsV8File(src)) {
-            CV8File elem;
-            elem.UnpackToDirectoryNoLoad(elem_path.string(), src, false, false);
+            CV8File::UnpackToDirectoryNoLoad(elem_path.string(), src, false, false);
             src.close();
-            elem.Dispose();
             boost::filesystem::remove(src_path);
         } else {
             src.close();
@@ -641,6 +637,7 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
         }
     }
 
+    stFileHeader FileHeader;
     file.read((char*)&FileHeader, sizeof(FileHeader));
 
     stBlockHeader BlockHeader;
@@ -653,8 +650,6 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
     ReadBlockData(file, pBlockHeader, (char*&)pElemsAddrs, &ElemsAddrsSize);
 
     unsigned int ElemsNum = ElemsAddrsSize / stElemAddr::Size();
-
-    Elems.clear();
 
     for (UINT i = 0; i < ElemsNum; i++) {
 
@@ -692,7 +687,7 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
         //080228 Блока данных может не быть, тогда адрес блока данных равен 0x7fffffff
         if (pElemsAddrs[i].elem_data_addr != V8_FF_SIGNATURE) {
             file.seekg(pElemsAddrs[i].elem_data_addr, std::ios_base::beg);
-            SmartUnpack(file, boolInflate && IsDataPacked, elem_path);
+            SmartUnpack(file, boolInflate/* && IsDataPacked*/, elem_path);
         } else {
             // TODO: Зачем это нужно??
             //ReadBlockData(file, nullptr, o_tmp, &elem.DataSize);
@@ -731,6 +726,7 @@ int CV8File::UnpackToFolder(const std::string &filename_in, const std::string &d
 		}
 	}
 
+	stFileHeader FileHeader;
 	file.read((char*)&FileHeader, sizeof(FileHeader));
 	{
 		boost::filesystem::path filename_out(dirname);
@@ -750,8 +746,6 @@ int CV8File::UnpackToFolder(const std::string &filename_in, const std::string &d
 	ReadBlockData(file, pBlockHeader, (char*&)pElemsAddrs, &ElemsAddrsSize);
 
 	unsigned int ElemsNum = ElemsAddrsSize / stElemAddr::Size();
-
-	Elems.clear();
 
 	for (UINT i = 0; i < ElemsNum; i++) {
 
@@ -830,7 +824,7 @@ int CV8File::UnpackToFolder(const std::string &filename_in, const std::string &d
 	return 0;
 }
 
-DWORD CV8File::_httoi(const char *value)
+DWORD _httoi(const char *value)
 {
 
     DWORD result = 0;
@@ -1158,7 +1152,7 @@ int CV8File::SaveBlockData(std::basic_ofstream<char> &file_out, const char *pBlo
     return 0;
 }
 
-int CV8File::Parse(const std::string &filename_in, const std::string &dirname, int level)
+int CV8File::Parse(const std::string &filename_in, const std::string &dirname)
 {
     int ret = 0;
 
@@ -1426,6 +1420,7 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
         }
     }
 
+    stFileHeader FileHeader;
 
     //Предварительные расчеты длины заголовка таблицы содержимого TOC файла
     FileHeader.next_page_addr = V8_FF_SIGNATURE;
@@ -1791,7 +1786,7 @@ int CV8File::GetData(char **DataBuffer, ULONG *DataBufferSize) const
 }
 
 
-int CV8File::SaveBlockDataToBuffer(char **cur_pos, const char *pBlockData, UINT BlockDataSize, UINT PageSize) const
+int CV8File::SaveBlockDataToBuffer(char **cur_pos, const char *pBlockData, UINT BlockDataSize, UINT PageSize)
 {
 
     if (PageSize < BlockDataSize)

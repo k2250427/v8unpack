@@ -55,22 +55,19 @@ int version(vector<string> &argv)
 
 int inflate(vector<string> &argv)
 {
-	CV8File V8File;
 	int ret = Inflate(argv[0], argv[1]);
 	return ret;
 }
 
 int deflate(vector<string> &argv)
 {
-	CV8File V8File;
 	int ret = Deflate(argv[0], argv[1]);
 	return ret;
 }
 
 int unpack(vector<string> &argv)
 {
-	CV8File V8File;
-	int ret = V8File.UnpackToFolder(argv[0], argv[1], argv[2], true);
+	int ret = CV8File::UnpackToFolder(argv[0], argv[1], argv[2], true);
 	return ret;
 }
 
@@ -83,8 +80,7 @@ int pack(vector<string> &argv)
 
 int parse(vector<string> &argv)
 {
-	CV8File V8File;
-	int ret = V8File.Parse(argv[0], argv[1]);
+	int ret = CV8File::Parse(argv[0], argv[1]);
 	return ret;
 }
 
@@ -135,16 +131,14 @@ int example(vector<string> &argv)
 int build(vector<string> &argv)
 {
 	const bool dont_pack = false;
-	CV8File V8File;
-	int ret = V8File.BuildCfFile(argv[0], argv[1], dont_pack);
+	int ret = CV8File::BuildCfFile(argv[0], argv[1], dont_pack);
 	return ret;
 }
 
 int build_nopack(vector<string> &argv)
 {
 	const bool dont_pack = true;
-	CV8File V8File;
-	int ret = V8File.BuildCfFile(argv[0], argv[1], dont_pack);
+	int ret = CV8File::BuildCfFile(argv[0], argv[1], dont_pack);
 	return ret;
 }
 
