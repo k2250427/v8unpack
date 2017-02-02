@@ -112,6 +112,15 @@ public:
 		char space3;
 		char EOL2_0D;
 		char EOL2_0A;
+
+		stBlockHeader():
+			EOL_0D(0xd), EOL_0A(0xa),
+			space1(' '), space2(' '), space3(' '),
+			EOL2_0D(0xd), EOL2_0A(0xa)
+			{}
+
+		static stBlockHeader create(uint32_t block_data_size, uint32_t page_size, uint32_t next_page_addr);
+
 		static const UINT Size()
 		{
 			return 1 + 1 + 8 + 1 + 8 + 1 + 8 + 1 + 1 + 1;
@@ -120,10 +129,8 @@ public:
 
 	int GetData(char **DataBufer, ULONG *DataBuferSize) const;
 	int Pack();
-	int SaveFile(const std::string &filename);
 	int LoadFileFromFolder(const std::string &dirname);
 	int LoadFile(char *pFileData, ULONG FileData, bool boolInflate = true, bool UnpackWhenNeed = false);
-	int PackFromFolder(const std::string &dirname, const std::string &filename);
 	int SaveFileToFolder(const std::string &dirname) const;
 
 	CV8File();
@@ -134,8 +141,10 @@ public:
 
 	void Dispose();
 
+	static int PackFromFolder(const std::string &dirname, const std::string &filename);
 	static int BuildCfFile(const std::string &dirname, const std::string &filename, bool dont_deflate = false);
 	static int SaveBlockData(std::basic_ofstream<char> &file_out, const char *pBlockData, UINT BlockDataSize, UINT PageSize = 512);
+	static int SaveBlockData(std::basic_ofstream<char> &file_out, std::basic_ifstream<char> &file_in, UINT BlockDataSize, UINT PageSize = 512);
 	static int UnpackToFolder(const std::string &filename, const std::string &dirname, const std::string &block_name, bool print_progress = false);
 	static int UnpackToDirectoryNoLoad(const std::string &directory, std::basic_ifstream<char> &file, bool boolInflate = true, bool UnpackWhenNeed = false);
 	static int Parse(const std::string &filename, const std::string &dirname);
