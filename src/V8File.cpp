@@ -1661,26 +1661,24 @@ int CV8File::GetData(char **DataBuffer, ULONG *DataBufferSize) const
     // заголовок блока и данные блока - адреса элементов с учетом минимальной страницы 512 байт
     NeedDataBufferSize += stBlockHeader::Size() + MAX(stElemAddr::Size() * ElemsNum, V8_DEFAULT_PAGE_SIZE);
 
-    std::vector<CV8Elem>::const_iterator elem;
-    for (elem = Elems.begin(); elem != Elems.end(); ++elem) {
+	for (auto elem : Elems) {
 
-        // заголовок блока и данные блока - заголовок элемента
-        NeedDataBufferSize += stBlockHeader::Size()  + elem->HeaderSize;
+		// заголовок блока и данные блока - заголовок элемента
+		NeedDataBufferSize += stBlockHeader::Size()  + elem.HeaderSize;
 
-		if (elem->IsV8File) {
+		if (elem.IsV8File) {
 
 			char *Data = nullptr;
 			ULONG DataSize = 0;
-			elem->UnpackedData.GetData(&Data, &DataSize);
-			/*
-			elem->pData = Data;
-			elem->DataSize = DataSize;
-			*/
+			elem.UnpackedData.GetData(&Data, &DataSize);
+			delete [] Data;
+			NeedDataBufferSize += stBlockHeader::Size() + DataSize;
+
 		} else {
 			// заголовок блока и данные блока - данные элемента с учетом минимальной страницы 512 байт
-			NeedDataBufferSize += stBlockHeader::Size()  + MAX(elem->DataSize, V8_DEFAULT_PAGE_SIZE);
+			NeedDataBufferSize += stBlockHeader::Size() + MAX(elem.DataSize, V8_DEFAULT_PAGE_SIZE);
 		}
-    }
+	}
 
 
     // Создаем и заполняем данные по адресам элементов
@@ -1693,22 +1691,19 @@ int CV8File::GetData(char **DataBuffer, ULONG *DataBufferSize) const
     else
         cur_block_addr += stElemAddr::Size() * ElemsNum;
 
-    for (elem = Elems.begin(); elem !=  Elems.end(); ++elem) {
+	for (auto elem : Elems) {
 
-        pCurrentTempElem->elem_header_addr = cur_block_addr;
-        cur_block_addr += sizeof(stBlockHeader) + elem->HeaderSize;
+		pCurrentTempElem->elem_header_addr = cur_block_addr;
+		cur_block_addr += sizeof(stBlockHeader) + elem.HeaderSize;
 
-        pCurrentTempElem->elem_data_addr = cur_block_addr;
-        cur_block_addr += sizeof(stBlockHeader);
+		pCurrentTempElem->elem_data_addr = cur_block_addr;
+		cur_block_addr += sizeof(stBlockHeader);
 
-        if (elem->DataSize > V8_DEFAULT_PAGE_SIZE)
-            cur_block_addr += elem->DataSize;
-        else
-            cur_block_addr += V8_DEFAULT_PAGE_SIZE;
+		cur_block_addr += MAX(elem.DataSize, V8_DEFAULT_PAGE_SIZE);
 
-        pCurrentTempElem->fffffff = V8_FF_SIGNATURE;
-        ++pCurrentTempElem;
-    }
+		pCurrentTempElem->fffffff = V8_FF_SIGNATURE;
+		++pCurrentTempElem;
+	}
 
 
     *DataBuffer = static_cast<char*> (realloc(*DataBuffer, NeedDataBufferSize));
@@ -1725,18 +1720,23 @@ int CV8File::GetData(char **DataBuffer, ULONG *DataBufferSize) const
     SaveBlockDataToBuffer(&cur_pos, (char*) pTempElemsAddrs, stElemAddr::Size() * ElemsNum);
 
     // записываем элементы (заголовок и данные)
-    for (elem = Elems.begin(); elem != Elems.end(); ++elem) {
-        SaveBlockDataToBuffer(&cur_pos, elem->pHeader, elem->HeaderSize, elem->HeaderSize);
-        SaveBlockDataToBuffer(&cur_pos, elem->pData, elem->DataSize);
+	for (auto elem : Elems) {
 
-		if (elem->IsV8File) {
-			// Очистим созданный блок данных
-			/*delete [] elem->pData;
-			elem->pData = nullptr;
-			elem->DataSize = 0;
-			*/
+		SaveBlockDataToBuffer(&cur_pos, elem.pHeader, elem.HeaderSize, elem.HeaderSize);
+		if (elem.IsV8File) {
+
+			char *Data = nullptr;
+			ULONG DataSize = 0;
+			elem.UnpackedData.GetData(&Data, &DataSize);
+
+			SaveBlockDataToBuffer(&cur_pos, Data, DataSize);
+
+			delete [] Data;
+
+		} else {
+			SaveBlockDataToBuffer(&cur_pos, elem.pData, elem.DataSize);
 		}
-    }
+	}
 
     //fclose(file_out);
 
