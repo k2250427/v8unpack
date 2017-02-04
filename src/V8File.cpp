@@ -372,7 +372,7 @@ int CV8File::LoadFile(char *pFileData, ULONG FileDataSize, bool boolInflate, boo
         return V8UNPACK_NOT_V8_FILE;
     }
 
-    char *InflateBuffer = NULL;
+    char *InflateBuffer = nullptr;
     ULONG InflateSize = 0;
 
     stFileHeader *pFileHeader = (stFileHeader*) pFileData;
@@ -416,7 +416,6 @@ int CV8File::LoadFile(char *pFileData, ULONG FileDataSize, bool boolInflate, boo
         CV8Elem elem;
         ReadBlockData(pFileData, pBlockHeader, elem.pHeader, &elem.HeaderSize);
 
-
         //080228 Блока данных может не быть, тогда адрес блока данных равен 0x7fffffff
         if (pElemsAddrs[i].elem_data_addr != V8_FF_SIGNATURE) {
             pBlockHeader = (stBlockHeader*) &pFileData[pElemsAddrs[i].elem_data_addr];
@@ -427,31 +426,31 @@ int CV8File::LoadFile(char *pFileData, ULONG FileDataSize, bool boolInflate, boo
         elem.UnpackedData.IsDataPacked = false;
 
         if (boolInflate && IsDataPacked) {
-            ret = Inflate(elem.pData, &InflateBuffer, elem.DataSize, &InflateSize);
+            int ret = Inflate(elem.pData, &InflateBuffer, elem.DataSize, &InflateSize);
 
             if (ret)
                 IsDataPacked = false;
             else {
+				elem.NeedUnpack = false; // отложенная распаковка не нужна
+				delete[] elem.pData; //нераспакованные данные больше не нужны
+				elem.pData = new char[InflateSize];
+				elem.DataSize = InflateSize;
+				memcpy(elem.pData, InflateBuffer, InflateSize);
 
-                elem.NeedUnpack = false; // отложенная распаковка не нужна
-                delete[] elem.pData; //нераспакованные данные больше не нужны
-                elem.pData = nullptr;
-                if (IsV8File(InflateBuffer, InflateSize)) {
-                    ret = elem.UnpackedData.LoadFile(InflateBuffer, InflateSize, boolInflate);
-                    if (ret)
-                        break;
-
-                    elem.pData = nullptr;
-                    elem.IsV8File = true;
-                } else {
-                    elem.pData = new char[InflateSize];
-                    elem.DataSize = InflateSize;
-                    memcpy(elem.pData, InflateBuffer, InflateSize);
-                }
-                ret = 0;
-
+				delete [] InflateBuffer;
+				InflateBuffer = nullptr;
             }
         }
+
+		if (IsV8File(elem.pData, elem.DataSize)) {
+			ret = elem.UnpackedData.LoadFile(elem.pData, elem.DataSize, boolInflate);
+			if (ret)
+				break;
+
+			delete [] elem.pData;
+			elem.pData = nullptr;
+			elem.IsV8File = true;
+		}
 
         Elems.push_back(elem);
 
