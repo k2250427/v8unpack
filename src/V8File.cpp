@@ -1597,8 +1597,7 @@ int CV8File::Pack()
 
     UINT ElemNum = 0;
 
-    std::vector<CV8Elem>::/*const_*/iterator elem;
-    for (elem = Elems.begin(); elem != Elems.end(); ++elem) {
+    for (auto elem : Elems) {
 
         ++ElemNum;
         if (print_progress && ElemNum && one_percent && ElemNum%one_percent == 0) {
@@ -1608,27 +1607,37 @@ int CV8File::Pack()
                 std::cout << ".";
         }
 
-        if (!elem->IsV8File) {
-            ret = Deflate(elem->pData, &DeflateBuffer, elem->DataSize, &DeflateSize);
+        if (!elem.IsV8File) {
+            ret = Deflate(elem.pData, &DeflateBuffer, elem.DataSize, &DeflateSize);
             if (ret)
                 return ret;
 
-            delete[] elem->pData;
-            elem->pData = new char[DeflateSize];
-            elem->DataSize = DeflateSize;
-            memcpy(elem->pData, DeflateBuffer, DeflateSize);
+            delete[] elem.pData;
+            elem.pData = new char[DeflateSize];
+            elem.DataSize = DeflateSize;
+            memcpy(elem.pData, DeflateBuffer, DeflateSize);
+
+            delete [] DeflateBuffer;
+            DeflateBuffer = nullptr;
+
         } else {
-            elem->UnpackedData.GetData(&DataBuffer, &DataBufferSize);
+            elem.UnpackedData.GetData(&DataBuffer, &DataBufferSize);
 
             ret = Deflate(DataBuffer, &DeflateBuffer, DataBufferSize, &DeflateSize);
             if (ret)
                 return ret;
 
-            elem->IsV8File = false;
+			delete [] DataBuffer;
+			DataBuffer = nullptr;
 
-            elem->pData = new char[DeflateSize];
-            elem->DataSize = DeflateSize;
-            memcpy(elem->pData, DeflateBuffer, DeflateSize);
+            elem.IsV8File = false;
+
+            elem.pData = new char[DeflateSize];
+            elem.DataSize = DeflateSize;
+            memcpy(elem.pData, DeflateBuffer, DeflateSize);
+
+            delete [] DeflateBuffer;
+            DeflateBuffer = nullptr;
 
         }
 
@@ -1638,12 +1647,6 @@ int CV8File::Pack()
     if (print_progress && one_percent) {
         std::cout << std::endl;
     }
-
-    if (DeflateBuffer)
-        free(DeflateBuffer);
-
-    if (DataBuffer)
-        free(DataBuffer);
 
     return 0;
 }
