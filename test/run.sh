@@ -22,6 +22,7 @@ create_data $depth $DIRNAME
 UNPACK=../bin/Release/v8unpack
 OUTDIRNAME='out-test'
 TMPFILE=file.tmp
+DIFFLOG=diff.log
 
 rm -rf $TMPFILE $OUTDIRNAME
 
@@ -30,7 +31,7 @@ echo 'build/parse test...'
 # Собираем файл, распаковываем и сравниваем каталоги
 $UNPACK -build $DIRNAME $TMPFILE >/dev/null
 $UNPACK -parse $TMPFILE $OUTDIRNAME >/dev/null
-diff -r $DIRNAME $OUTDIRNAME >diff.log 2>&1
+diff -r $DIRNAME $OUTDIRNAME >$DIFFLOG 2>&1
 
 if [ $? -ne 0 ];
 then
@@ -48,8 +49,8 @@ $UNPACK -unpack $TMPFILE $OUTDIRNAME >/dev/null
 rm $TMPFILE
 $UNPACK -pack $OUTDIRNAME $TMPFILE >/dev/null
 rm -rf $OUTDIRNAME
-$UNPACK -parse $TMPFILE $OUTDIRNAME
-diff -r $DIRNAME $OUTDIRNAME >diff.log 2>&1
+$UNPACK -parse $TMPFILE $OUTDIRNAME >/dev/null
+diff -r $DIRNAME $OUTDIRNAME >$DIFFLOG 2>&1
 
 if [ $? -ne 0 ];
 then
@@ -62,4 +63,4 @@ echo Passed
 rm -rf $DIRNAME
 rm -rf $OUTDIRNAME
 rm $TMPFILE
-
+rm $DIFFLOG
