@@ -25,18 +25,41 @@ TMPFILE=file.tmp
 
 rm -rf $TMPFILE $OUTDIRNAME
 
+echo 'build/parse test...'
+
 # Собираем файл, распаковываем и сравниваем каталоги
 $UNPACK -build $DIRNAME $TMPFILE >/dev/null
 $UNPACK -parse $TMPFILE $OUTDIRNAME >/dev/null
-diff -r $DIRNAME $OUTDIRNAME
+diff -r $DIRNAME $OUTDIRNAME >diff.log 2>&1
 
-if [ $? -eq 0 ];
+if [ $? -ne 0 ];
 then
-
-	rm -rf $DIRNAME
-	rm -rf $OUTDIRNAME
-
+	echo Failed
+	exit 1
 fi
 
+echo Passed
+
+rm -rf $OUTDIRNAME
+
+echo 'build/unpack/pack/parse test...'
+
+$UNPACK -unpack $TMPFILE $OUTDIRNAME >/dev/null
+rm $TMPFILE
+$UNPACK -pack $OUTDIRNAME $TMPFILE >/dev/null
+rm -rf $OUTDIRNAME
+$UNPACK -parse $TMPFILE $OUTDIRNAME
+diff -r $DIRNAME $OUTDIRNAME >diff.log 2>&1
+
+if [ $? -ne 0 ];
+then
+	echo Failed
+	exit 1
+fi
+
+echo Passed
+
+rm -rf $DIRNAME
+rm -rf $OUTDIRNAME
 rm $TMPFILE
 

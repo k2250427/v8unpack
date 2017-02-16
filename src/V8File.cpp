@@ -63,10 +63,10 @@ CV8Elem::CV8Elem(const CV8Elem &src)
 { }
 
 CV8Elem::CV8Elem()
+	: pHeader(nullptr), HeaderSize(0),
+	pData(nullptr), DataSize(0),
+	IsV8File(false), NeedUnpack(false)
 {
-    IsV8File = false;
-    HeaderSize = 0;
-    DataSize = 0;
 }
 
 CV8Elem::~CV8Elem()
@@ -1331,6 +1331,7 @@ int CV8File::LoadFileFromFolder(const std::string &dirname)
             new_dirname += name;
 
             elem.UnpackedData.LoadFileFromFolder(new_dirname);
+            elem.Pack(false);
 
         } else {
             elem.IsV8File = false;
@@ -1652,7 +1653,7 @@ int CV8File::Pack()
 }
 
 
-int CV8File::GetData(char **DataBuffer, ULONG *DataBufferSize) const
+int CV8File::GetData(char **DataBuffer, ULONG *DataBufferSize)
 {
 
     UINT ElemsNum = Elems.size();
@@ -1670,16 +1671,11 @@ int CV8File::GetData(char **DataBuffer, ULONG *DataBufferSize) const
 
 		if (elem.IsV8File) {
 
-			char *Data = nullptr;
-			ULONG DataSize = 0;
-			elem.UnpackedData.GetData(&Data, &DataSize);
-			delete [] Data;
-			NeedDataBufferSize += stBlockHeader::Size() + DataSize;
+			elem.UnpackedData.GetData(&elem.pData, &elem.DataSize);
+			elem.IsV8File = false;
 
-		} else {
-			// заголовок блока и данные блока - данные элемента с учетом минимальной страницы 512 байт
-			NeedDataBufferSize += stBlockHeader::Size() + MAX(elem.DataSize, V8_DEFAULT_PAGE_SIZE);
 		}
+		NeedDataBufferSize += stBlockHeader::Size() + MAX(elem.DataSize, V8_DEFAULT_PAGE_SIZE);
 	}
 
 
@@ -1725,19 +1721,7 @@ int CV8File::GetData(char **DataBuffer, ULONG *DataBufferSize) const
 	for (auto elem : Elems) {
 
 		SaveBlockDataToBuffer(&cur_pos, elem.pHeader, elem.HeaderSize, elem.HeaderSize);
-		if (elem.IsV8File) {
-
-			char *Data = nullptr;
-			ULONG DataSize = 0;
-			elem.UnpackedData.GetData(&Data, &DataSize);
-
-			SaveBlockDataToBuffer(&cur_pos, Data, DataSize);
-
-			delete [] Data;
-
-		} else {
-			SaveBlockDataToBuffer(&cur_pos, elem.pData, elem.DataSize);
-		}
+		SaveBlockDataToBuffer(&cur_pos, elem.pData, elem.DataSize);
 	}
 
     //fclose(file_out);
