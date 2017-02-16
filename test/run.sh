@@ -60,6 +60,41 @@ fi
 
 echo Passed
 
+echo 'build/unpack/pack/parse via list test...'
+LISTFILE=list.txt
+DIRNAME2='in-test2'
+TMPFILE2='file2.tmp'
+OUTDIRNAME2='out-test2'
+
+cp -r $DIRNAME $DIRNAME2
+printf "$DIRNAME;$TMPFILE\n$DIRNAME2;$TMPFILE2" > $LISTFILE
+$UNPACK -build -list $LISTFILE >/dev/null
+
+printf "$TMPFILE;$OUTDIRNAME\n$TMPFILE2;$OUTDIRNAME2" > $LISTFILE
+$UNPACK -parse -list $LISTFILE >/dev/null
+
+diff -r $DIRNAME $OUTDIRNAME >$DIFFLOG 2>&1
+if [ $? -ne 0 ];
+then
+	echo Failed
+	exit 1
+fi
+
+diff -r $DIRNAME2 $OUTDIRNAME2 >$DIFFLOG 2>&1
+if [ $? -ne 0 ];
+then
+	echo Failed
+	exit 1
+fi
+
+echo Passed
+
+
+rm -rf $DIRNAME2
+rm -rf $OUTDIRNAME2
+rm $TMPFILE2
+rm $LISTFILE
+
 rm -rf $DIRNAME
 rm -rf $OUTDIRNAME
 rm $TMPFILE
