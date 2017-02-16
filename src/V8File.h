@@ -127,7 +127,7 @@ public:
 		};
 	};
 
-	int GetData(char **DataBufer, ULONG *DataBuferSize) const;
+	int GetData(char **DataBufer, ULONG *DataBuferSize);
 	int Pack();
 	int LoadFileFromFolder(const std::string &dirname);
 	int LoadFile(char *pFileData, ULONG FileData, bool boolInflate = true, bool UnpackWhenNeed = false);

@@ -63,10 +63,10 @@ CV8Elem::CV8Elem(const CV8Elem &src)
 { }
 
 CV8Elem::CV8Elem()
+	: pHeader(nullptr), HeaderSize(0),
+	pData(nullptr), DataSize(0),
+	IsV8File(false), NeedUnpack(false)
 {
-    IsV8File = false;
-    HeaderSize = 0;
-    DataSize = 0;
 }
 
 CV8Elem::~CV8Elem()
@@ -1331,6 +1331,7 @@ int CV8File::LoadFileFromFolder(const std::string &dirname)
             new_dirname += name;
 
             elem.UnpackedData.LoadFileFromFolder(new_dirname);
+            elem.Pack(false);
 
         } else {
             elem.IsV8File = false;
@@ -1597,8 +1598,7 @@ int CV8File::Pack()
 
     UINT ElemNum = 0;
 
-    std::vector<CV8Elem>::/*const_*/iterator elem;
-    for (elem = Elems.begin(); elem != Elems.end(); ++elem) {
+    for (auto elem : Elems) {
 
         ++ElemNum;
         if (print_progress && ElemNum && one_percent && ElemNum%one_percent == 0) {
@@ -1608,27 +1608,37 @@ int CV8File::Pack()
                 std::cout << ".";
         }
 
-        if (!elem->IsV8File) {
-            ret = Deflate(elem->pData, &DeflateBuffer, elem->DataSize, &DeflateSize);
+        if (!elem.IsV8File) {
+            ret = Deflate(elem.pData, &DeflateBuffer, elem.DataSize, &DeflateSize);
             if (ret)
                 return ret;
 
-            delete[] elem->pData;
-            elem->pData = new char[DeflateSize];
-            elem->DataSize = DeflateSize;
-            memcpy(elem->pData, DeflateBuffer, DeflateSize);
+            delete[] elem.pData;
+            elem.pData = new char[DeflateSize];
+            elem.DataSize = DeflateSize;
+            memcpy(elem.pData, DeflateBuffer, DeflateSize);
+
+            delete [] DeflateBuffer;
+            DeflateBuffer = nullptr;
+
         } else {
-            elem->UnpackedData.GetData(&DataBuffer, &DataBufferSize);
+            elem.UnpackedData.GetData(&DataBuffer, &DataBufferSize);
 
             ret = Deflate(DataBuffer, &DeflateBuffer, DataBufferSize, &DeflateSize);
             if (ret)
                 return ret;
 
-            elem->IsV8File = false;
+			delete [] DataBuffer;
+			DataBuffer = nullptr;
 
-            elem->pData = new char[DeflateSize];
-            elem->DataSize = DeflateSize;
-            memcpy(elem->pData, DeflateBuffer, DeflateSize);
+            elem.IsV8File = false;
+
+            elem.pData = new char[DeflateSize];
+            elem.DataSize = DeflateSize;
+            memcpy(elem.pData, DeflateBuffer, DeflateSize);
+
+            delete [] DeflateBuffer;
+            DeflateBuffer = nullptr;
 
         }
 
@@ -1639,17 +1649,11 @@ int CV8File::Pack()
         std::cout << std::endl;
     }
 
-    if (DeflateBuffer)
-        free(DeflateBuffer);
-
-    if (DataBuffer)
-        free(DataBuffer);
-
     return 0;
 }
 
 
-int CV8File::GetData(char **DataBuffer, ULONG *DataBufferSize) const
+int CV8File::GetData(char **DataBuffer, ULONG *DataBufferSize)
 {
 
     UINT ElemsNum = Elems.size();
@@ -1667,16 +1671,11 @@ int CV8File::GetData(char **DataBuffer, ULONG *DataBufferSize) const
 
 		if (elem.IsV8File) {
 
-			char *Data = nullptr;
-			ULONG DataSize = 0;
-			elem.UnpackedData.GetData(&Data, &DataSize);
-			delete [] Data;
-			NeedDataBufferSize += stBlockHeader::Size() + DataSize;
+			elem.UnpackedData.GetData(&elem.pData, &elem.DataSize);
+			elem.IsV8File = false;
 
-		} else {
-			// заголовок блока и данные блока - данные элемента с учетом минимальной страницы 512 байт
-			NeedDataBufferSize += stBlockHeader::Size() + MAX(elem.DataSize, V8_DEFAULT_PAGE_SIZE);
 		}
+		NeedDataBufferSize += stBlockHeader::Size() + MAX(elem.DataSize, V8_DEFAULT_PAGE_SIZE);
 	}
 
 
@@ -1722,19 +1721,7 @@ int CV8File::GetData(char **DataBuffer, ULONG *DataBufferSize) const
 	for (auto elem : Elems) {
 
 		SaveBlockDataToBuffer(&cur_pos, elem.pHeader, elem.HeaderSize, elem.HeaderSize);
-		if (elem.IsV8File) {
-
-			char *Data = nullptr;
-			ULONG DataSize = 0;
-			elem.UnpackedData.GetData(&Data, &DataSize);
-
-			SaveBlockDataToBuffer(&cur_pos, Data, DataSize);
-
-			delete [] Data;
-
-		} else {
-			SaveBlockDataToBuffer(&cur_pos, elem.pData, elem.DataSize);
-		}
+		SaveBlockDataToBuffer(&cur_pos, elem.pData, elem.DataSize);
 	}
 
     //fclose(file_out);
