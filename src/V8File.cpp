@@ -1187,14 +1187,14 @@ int CV8File::Parse(const std::string &filename_in, const std::string &dirname)
     boost::filesystem::ifstream file_in(filename_in, std::ios_base::binary);
 
     if (!file_in) {
-        std::cerr << "UnpackToFolder. Input file not found!" << std::endl;
+        std::cerr << "UnpackToFolder. `" << filename_in << "` not found!" << std::endl;
         return -1;
     }
 
     ret = UnpackToDirectoryNoLoad(dirname, file_in);
 
     if (ret == V8UNPACK_NOT_V8_FILE) {
-        std::cerr << "UnpackToFolder. This is not V8 file!" << std::endl;
+        std::cerr << "UnpackToFolder. `" << filename_in << "` is not V8 file!" << std::endl;
         return ret;
     }
 

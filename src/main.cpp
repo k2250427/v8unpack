@@ -24,6 +24,10 @@
 
 using namespace std;
 
+typedef int (*handler_t)(vector<string> &argv);
+void read_param_file(const char *filename, vector< vector<string> > &list);
+handler_t get_run_mode(const vector<string> &args, int &arg_base, bool &allow_listfile);
+
 int usage(vector<string> &argv)
 {
 	cout << endl;
@@ -46,6 +50,7 @@ int usage(vector<string> &argv)
 	cout << "  -P[ARSE]   -L[IST]   listfile" << endl;
 	cout << "  -B[UILD] [-N[OPACK]] in_dirname         out_filename" << endl;
 	cout << "  -B[UILD] [-N[OPACK]] -L[IST] listfile" << endl;
+	cout << "  -L[IST]              listfile" << endl;
 
 	cout << "  -E[XAMPLE]" << endl;
 	cout << "  -BAT" << endl;
@@ -89,6 +94,33 @@ int parse(vector<string> &argv)
 {
 	int ret = CV8File::Parse(argv[0], argv[1]);
 	return ret;
+}
+
+int process_list(vector<string> &argv)
+{
+	if (argv.size() < 1) {
+		return SHOW_USAGE;
+	}
+
+	vector< vector<string> > commands;
+	read_param_file(argv.at(0).c_str(), commands);
+
+	for (auto command : commands) {
+
+		int arg_base = 0;
+		bool allow_listfile = false;
+
+		handler_t handler = get_run_mode(command, arg_base, allow_listfile);
+
+		command.erase(command.begin());
+		int ret = handler(command);
+		if (ret != 0) {
+			// выходим по первой ошибке
+			return ret;
+		}
+	}
+
+	return 0;
 }
 
 int bat(vector<string> &argv)
@@ -149,20 +181,18 @@ int build_nopack(vector<string> &argv)
 	return ret;
 }
 
-typedef int (*handler_t)(vector<string> &argv);
-
-handler_t getRunMode(char *argv[], int argc, int &arg_base, bool &allow_listfile)
+handler_t get_run_mode(const vector<string> &args, int &arg_base, bool &allow_listfile)
 {
-	if (argc < 2) {
+	if (args.size() - arg_base < 1) {
 		allow_listfile = false;
 		return usage;
 	}
 
 	allow_listfile = true;
-	string cur_mode(argv[1]);
+	string cur_mode(args[arg_base]);
 	transform(cur_mode.begin(), cur_mode.end(), cur_mode.begin(), ::tolower);
 
-	arg_base = 2;
+	arg_base += 1;
 	if (cur_mode == "-version" || cur_mode == "-v") {
 		allow_listfile = false;
 		return version;
@@ -192,8 +222,8 @@ handler_t getRunMode(char *argv[], int argc, int &arg_base, bool &allow_listfile
 
 		bool dont_pack = false;
 
-		if (argc > arg_base) {
-			string arg2(argv[arg_base]);
+		if ((int)args.size() > arg_base) {
+			string arg2(args[arg_base]);
 			transform(arg2.begin(), arg2.end(), arg2.begin(), ::tolower);
 			if (arg2 == "-n" || arg2 == "-nopack") {
 				arg_base++;
@@ -210,6 +240,10 @@ handler_t getRunMode(char *argv[], int argc, int &arg_base, bool &allow_listfile
 
 	if (cur_mode == "-example" || cur_mode == "-e") {
 		return example;
+	}
+
+	if (cur_mode == "-list" || cur_mode == "-l") {
+		return process_list;
 	}
 
 	return nullptr;
@@ -244,7 +278,11 @@ int main(int argc, char* argv[])
 {
 	int arg_base = 1;
 	bool allow_listfile = false;
-	handler_t handler = getRunMode(argv, argc, arg_base, allow_listfile);
+	vector<string> args;
+	for (int i = 0; i < argc; i++) {
+		args.push_back(argv[i]);
+	}
+	handler_t handler = get_run_mode(args, arg_base, allow_listfile);
 
 	vector<string> cli_args;
 

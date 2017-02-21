@@ -28,14 +28,18 @@ fi
 OUTDIRNAME='out-test'
 TMPFILE=file.tmp
 DIFFLOG=diff.log
+LISTFILE=list.txt
+DIRNAME2='in-test2'
+TMPFILE2='file2.tmp'
+OUTDIRNAME2='out-test2'
 
-rm -rf $TMPFILE $OUTDIRNAME
+rm -rf $TMPFILE $OUTDIRNAME $TMPFILE2 $OUTDIRNAME2
 
 echo 'build/parse test...'
 
 # Собираем файл, распаковываем и сравниваем каталоги
-$UNPACK -build $DIRNAME $TMPFILE >/dev/null
-$UNPACK -parse $TMPFILE $OUTDIRNAME >/dev/null
+printf '%b\n%b' "-build;$DIRNAME;$TMPFILE" "-parse;$TMPFILE;$OUTDIRNAME" > $LISTFILE
+$UNPACK -list $LISTFILE >/dev/null
 diff -r $DIRNAME $OUTDIRNAME >$DIFFLOG 2>&1
 
 if [ $? -ne 0 ];
@@ -50,12 +54,11 @@ rm -rf $OUTDIRNAME
 
 echo 'build/unpack/pack/parse test...'
 
-$UNPACK -unpack $TMPFILE $OUTDIRNAME >/dev/null
-rm $TMPFILE
-$UNPACK -pack $OUTDIRNAME $TMPFILE >/dev/null
-rm -rf $OUTDIRNAME
-$UNPACK -parse $TMPFILE $OUTDIRNAME >/dev/null
-diff -r $DIRNAME $OUTDIRNAME >$DIFFLOG 2>&1
+printf '%b\n%b\n%b' "-unpack;$TMPFILE;$OUTDIRNAME" \
+	"-pack;$OUTDIRNAME;$TMPFILE2" \
+	"-parse;$TMPFILE2;$OUTDIRNAME2"  > $LISTFILE
+$UNPACK -list $LISTFILE >/dev/null
+diff -r $DIRNAME $OUTDIRNAME2 >$DIFFLOG 2>&1
 
 if [ $? -ne 0 ];
 then
@@ -65,11 +68,10 @@ fi
 
 echo Passed
 
+rm $TMPFILE $TMPFILE2
+rm -rf $OUTDIRNAME $OUTDIRNAME2
+
 echo 'build/unpack/pack/parse via list test...'
-LISTFILE=list.txt
-DIRNAME2='in-test2'
-TMPFILE2='file2.tmp'
-OUTDIRNAME2='out-test2'
 
 cp -r $DIRNAME $DIRNAME2
 printf "$DIRNAME;$TMPFILE\n$DIRNAME2;$TMPFILE2" > $LISTFILE
