@@ -35,13 +35,20 @@ int usage(vector<string> &argv)
 	cout << endl;
 	cout << "V8UNPACK" << endl;
 	cout << "  -U[NPACK]            in_filename.cf     out_dirname" << endl;
+	cout << "  -U[NPACK]  -L[IST]   listfile" << endl;
 	cout << "  -PA[CK]              in_dirname         out_filename.cf" << endl;
+	cout << "  -PA[CK]    -L[IST]   listfile" << endl;
 	cout << "  -I[NFLATE]           in_filename.data   out_filename" << endl;
+	cout << "  -I[NFLATE] -L[IST]   listfile" << endl;
 	cout << "  -D[EFLATE]           in_filename        filename.data" << endl;
+	cout << "  -D[EFLATE] -L[IST]   listfile" << endl;
+	cout << "  -P[ARSE]             in_filename        out_dirname" << endl;
+	cout << "  -P[ARSE]   -L[IST]   listfile" << endl;
+	cout << "  -B[UILD] [-N[OPACK]] in_dirname         out_filename" << endl;
+	cout << "  -B[UILD] [-N[OPACK]] -L[IST] listfile" << endl;
+
 	cout << "  -E[XAMPLE]" << endl;
 	cout << "  -BAT" << endl;
-	cout << "  -P[ARSE]             in_filename        out_dirname" << endl;
-	cout << "  -B[UILD] [-N[OPACK]] in_dirname         out_filename" << endl;
 	cout << "  -V[ERSION]" << endl;
 
 	return 0;
