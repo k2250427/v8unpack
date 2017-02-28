@@ -1198,7 +1198,7 @@ int CV8File::Parse(const std::string &filename_in, const std::string &dirname)
         return ret;
     }
 
-    std::cout << "LoadFile: ok" << std::endl;
+    std::cout << "Parse `" << filename_in << "`: ok" << std::endl << std::flush;
 
     return ret;
 }
@@ -1513,7 +1513,7 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
 
     delete [] pTOC;
 
-    std::cout << std::endl << "Build OK!";
+    std::cout << std::endl << "Build `" << out_filename << "` OK!" << std::endl << std::flush;
 
     return 0;
 }
