@@ -1,3 +1,21 @@
+v8unpack (3.0.39-1~xenial) xenial; urgency=low
+
+  * Added -list mode
+
+ -- Sergey Batanov <sergey.batanov@dmpas.ru>  Mon, 06 Mar 2017 23:01:04 +0300
+
+v8unpack (3.0.39-1~vivid) vivid; urgency=low
+
+  * Added -list mode
+
+ -- Sergey Batanov <sergey.batanov@dmpas.ru>  Mon, 06 Mar 2017 23:01:04 +0300
+
+v8unpack (3.0.39-1~trusty) trusty; urgency=low
+
+  * Added -list mode
+
+ -- Sergey Batanov <sergey.batanov@dmpas.ru>  Mon, 06 Mar 2017 23:01:04 +0300
+
 v8unpack (3.0.38-3~xenial) xenial; urgency=low
 
   * Xenial port
