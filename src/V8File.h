@@ -1,7 +1,7 @@
 /*----------------------------------------------------------
-This Source Code Form is subject to the terms of the 
-Mozilla Public License, v.2.0. If a copy of the MPL 
-was not distributed with this file, You can obtain one 
+This Source Code Form is subject to the terms of the
+Mozilla Public License, v.2.0. If a copy of the MPL
+was not distributed with this file, You can obtain one
 at http://mozilla.org/MPL/2.0/.
 ----------------------------------------------------------*/
 /////////////////////////////////////////////////////////////////////////////
@@ -193,6 +193,8 @@ public:
 	int Pack(bool deflate = true);
 	int SetName(const char *ElemName, UINT ElemNameLen);
 	int GetName(char* ElemName, UINT *ElemNameLen) const;
+
+	void Dispose();
 
 	char               *pHeader; // TODO: Утечка памяти
 	UINT                HeaderSize;

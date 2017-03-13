@@ -1,7 +1,7 @@
 /*----------------------------------------------------------
-This Source Code Form is subject to the terms of the 
-Mozilla Public License, v.2.0. If a copy of the MPL 
-was not distributed with this file, You can obtain one 
+This Source Code Form is subject to the terms of the
+Mozilla Public License, v.2.0. If a copy of the MPL
+was not distributed with this file, You can obtain one
 at http://mozilla.org/MPL/2.0/.
 ----------------------------------------------------------*/
 /////////////////////////////////////////////////////////////////////////////
@@ -473,29 +473,27 @@ int CV8File::LoadFile(char *pFileData, ULONG FileDataSize, bool boolInflate, boo
 
 void CV8File::Dispose()
 {
-    std::vector<CV8Elem>::iterator elem;
-    for (elem = Elems.begin(); elem != Elems.end(); ++elem) {
-        if (elem->pData)
-            delete [] elem->pData;
-        if (elem->pHeader)
-            delete [] elem->pHeader;
-    }
-    Elems.clear();
+	std::vector<CV8Elem>::iterator elem;
+	for (elem = Elems.begin(); elem != Elems.end(); ++elem) {
+		elem->Dispose();
+	}
+	Elems.clear();
 }
 
 //++ dmpas Затычка Issue6
 
 // Нѣкоторый условный предѣл
-const size_t SmartLimit = 100 *1024;
+const size_t SmartLimit = 200 *1024;
+const size_t SmartUnpackedLimit = 20 *1024*1024;
 
 /*
-    Лучше всѣго сжимается текст
-    Берём степень сжатія текста в 99% (объём распакованных данных в 100 раз больше)
-    Берём примѣрный порог использованія памяти в 10МБ (в этот объём должы влезть распакованные данные)
-    Дѣлим 10МБ на 100 и получаем 100 КБ
-    Упакованные данные размѣром до 100 КБ можно спокойно обрабатывать в памяти
+	Лучше всѣго сжимается текст
+	Берём степень сжатія текста в 99% (объём распакованных данных в 100 раз больше)
+	Берём примѣрный порог использованія памяти в 20МБ (в этот объём должы влезть распакованные данные)
+	Дѣлим 20МБ на 100 и получаем 200 КБ
+	Упакованные данные размѣром до 200 КБ можно спокойно обрабатывать в памяти
 
-    В дальнейшем этот показатель всё же будет вынесен в параметр командной строки
+	В дальнейшем этот показатель всё же будет вынесен в параметр командной строки
 */
 
 int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesystem::path &elem_path)
@@ -1297,6 +1295,22 @@ int CV8Elem::SetName(const char *ElemName, UINT ElemNameLen)
 	return 0;
 }
 
+void CV8Elem::Dispose()
+{
+	if (pData != nullptr) {
+		delete[] pData;
+		pData = nullptr;
+	}
+
+	if (pHeader != nullptr) {
+		delete[] pHeader;
+		pHeader = nullptr;
+	}
+
+	IsV8File = false;
+	HeaderSize = 0;
+	DataSize = 0;
+}
 
 
 int CV8File::LoadFileFromFolder(const std::string &dirname)
@@ -1361,7 +1375,6 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
 {
     //filename can't be empty
     if (!in_dirname.size()) {
-        fputs("Argument error - Set of `in_dirname' argument \n", stderr);
         std::cerr << "Argument error - Set of `in_dirname' argument" << std::endl;
         return SHOW_USAGE;
     }
@@ -1403,10 +1416,7 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
     DWORD cur_block_addr = stFileHeader::Size() + stBlockHeader::Size();
     stElemAddr *pTOC;
     pTOC = new stElemAddr[ElemsNum];
-    if (sizeof(stElemAddr) * ElemsNum < V8_DEFAULT_PAGE_SIZE)
-        cur_block_addr += V8_DEFAULT_PAGE_SIZE;
-    else
-        cur_block_addr += stElemAddr::Size() * ElemsNum;
+	cur_block_addr += MAX(stElemAddr::Size() * ElemsNum, V8_DEFAULT_PAGE_SIZE);
 
     boost::filesystem::ofstream file_out(out_filename, std::ios_base::binary);
     //Открываем выходной файл контейнер на запись
@@ -1457,58 +1467,76 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
         memset(pElem.pHeader, 0, pElem.HeaderSize);
 
         pElem.SetName(name.c_str(), name.size());
-        if (boost::filesystem::is_directory(current_file)) {
 
-            pElem.IsV8File = true;
+		pTOC[ElemNum].elem_header_addr = file_out.tellp();
+		SaveBlockData(file_out, pElem.pHeader, pElem.HeaderSize, pElem.HeaderSize);
 
-            std::string new_dirname(in_dirname);
-            new_dirname += "/";
-            new_dirname += name;
+		pTOC[ElemNum].elem_data_addr = file_out.tellp();
+		pTOC[ElemNum].fffffff = V8_FF_SIGNATURE;
 
-            pElem.UnpackedData.LoadFileFromFolder(new_dirname);
+		if (boost::filesystem::is_directory(current_file)) {
 
-        } else {
+			pElem.IsV8File = true;
 
-            pElem.IsV8File = false;
+			std::string new_dirname(in_dirname);
+			new_dirname += "/";
+			new_dirname += name;
 
-            pElem.DataSize = boost::filesystem::file_size(current_file);
-            pElem.pData = new char[pElem.DataSize];
+			pElem.UnpackedData.LoadFileFromFolder(new_dirname);
+			pElem.Pack(!dont_deflate);
 
-            boost::filesystem::path p_filename(in_dirname);
-            p_filename /= name;
+			SaveBlockData(file_out, pElem.pData, pElem.DataSize);
 
-            boost::filesystem::ifstream file_in(p_filename, std::ios_base::binary);
-            file_in.read(reinterpret_cast<char*>(pElem.pData), pElem.DataSize);
-        }
+		} else {
 
-        //Сжимаем данные
-        pElem.Pack(!dont_deflate);
+			pElem.IsV8File = false;
 
-        //Добавляем элемент в TOC
-        pTOC[ElemNum].elem_header_addr = cur_block_addr;
-        cur_block_addr += sizeof(stBlockHeader) + pElem.HeaderSize;
-        pTOC[ElemNum].elem_data_addr = cur_block_addr;
-        cur_block_addr += sizeof(stBlockHeader);
-        if (pElem.DataSize > V8_DEFAULT_PAGE_SIZE)
-            cur_block_addr += pElem.DataSize;
-        else
-            cur_block_addr += V8_DEFAULT_PAGE_SIZE;
-        pTOC[ElemNum].fffffff = V8_FF_SIGNATURE;
-        //Записываем элемент в файл
-        SaveBlockData(file_out, pElem.pHeader, pElem.HeaderSize, pElem.HeaderSize);
-        SaveBlockData(file_out, pElem.pData, pElem.DataSize);
+			pElem.DataSize = boost::filesystem::file_size(current_file);
 
-        //Освобождаем память
-        delete[] pElem.pData;
-        pElem.pData = nullptr;
-        delete[] pElem.pHeader;
-        pElem.pHeader = nullptr;
-        pElem.IsV8File = false;
-        pElem.HeaderSize = 0;
-        pElem.DataSize = 0;
+			boost::filesystem::path p_filename(in_dirname);
+			p_filename /= name;
+			boost::filesystem::ifstream file_in(p_filename, std::ios_base::binary);
 
-        ElemNum++;
-    }
+			if (pElem.DataSize < SmartUnpackedLimit) {
+
+				pElem.pData = new char[pElem.DataSize];
+
+				file_in.read(reinterpret_cast<char*>(pElem.pData), pElem.DataSize);
+
+				pElem.Pack(!dont_deflate);
+
+				SaveBlockData(file_out, pElem.pData, pElem.DataSize);
+
+			} else {
+
+				if (dont_deflate) {
+					SaveBlockData(file_out, file_in, pElem.DataSize);
+				} else {
+					// Упаковка через промежуточный файл
+					boost::filesystem::path tmp_file_path = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+
+					{
+						boost::filesystem::ofstream tmp_file(tmp_file_path, std::ios_base::binary);
+						Deflate(file_in, tmp_file);
+						tmp_file.close();
+					}
+
+					{
+						pElem.DataSize = boost::filesystem::file_size(tmp_file_path);
+						boost::filesystem::ifstream tmp_file(tmp_file_path, std::ios_base::binary);
+						SaveBlockData(file_out, tmp_file, pElem.DataSize);
+						tmp_file.close();
+
+						boost::filesystem::remove(tmp_file_path);
+					}
+				}
+			}
+		}
+
+		pElem.Dispose();
+
+		ElemNum++;
+	}
 
     //Записывем заголовок файла
     file_out.seekp(0, std::ios_base::beg);
@@ -1526,16 +1554,14 @@ int CV8File::BuildCfFile(const std::string &in_dirname, const std::string &out_f
 
 int CV8Elem::Pack(bool deflate)
 {
-	char *DeflateBuffer = nullptr;
-	ULONG DeflateSize = 0;
-
-	char *DataBuffer = nullptr;
-	ULONG DataBufferSize = 0;
-
 	int ret = 0;
 	if (!IsV8File) {
 
 		if (deflate) {
+
+			char *DeflateBuffer = nullptr;
+			ULONG DeflateSize = 0;
+
 			ret = Deflate(pData, &DeflateBuffer, DataSize, &DeflateSize);
 			if (ret) {
 				return ret;
@@ -1545,13 +1571,22 @@ int CV8Elem::Pack(bool deflate)
 			pData = new char[DeflateSize];
 			DataSize = DeflateSize;
 			memcpy(pData, DeflateBuffer, DeflateSize);
+
+			delete [] DeflateBuffer;
 		}
 
 	} else {
 
+		char *DataBuffer = nullptr;
+		ULONG DataBufferSize = 0;
+
 		UnpackedData.GetData(&DataBuffer, &DataBufferSize);
+		UnpackedData.Dispose();
 
 		if (deflate) {
+
+			char *DeflateBuffer = nullptr;
+			ULONG DeflateSize = 0;
 
 			ret = Deflate(DataBuffer, &DeflateBuffer, DataBufferSize, &DeflateSize);
 			if (ret) {
@@ -1562,6 +1597,8 @@ int CV8Elem::Pack(bool deflate)
 			DataSize = DeflateSize;
 			memcpy(pData, DeflateBuffer, DeflateSize);
 
+			delete [] DeflateBuffer;
+
 		} else {
 
 			pData = new char[DataBufferSize];
@@ -1570,15 +1607,9 @@ int CV8Elem::Pack(bool deflate)
 
 		}
 
+		delete [] DataBuffer;
+
 		IsV8File = false;
-	}
-
-	if (DeflateBuffer) {
-		free(DeflateBuffer);
-	}
-
-	if (DataBuffer) {
-		free(DataBuffer);
 	}
 
 	return 0;
@@ -1690,10 +1721,7 @@ int CV8File::GetData(char **DataBuffer, ULONG *DataBufferSize)
     pCurrentTempElem = pTempElemsAddrs;
 
     DWORD cur_block_addr = stFileHeader::Size() + stBlockHeader::Size();
-    if (stElemAddr::Size() * ElemsNum < V8_DEFAULT_PAGE_SIZE)
-        cur_block_addr += V8_DEFAULT_PAGE_SIZE;
-    else
-        cur_block_addr += stElemAddr::Size() * ElemsNum;
+	cur_block_addr += MAX(V8_DEFAULT_PAGE_SIZE, stElemAddr::Size() * ElemsNum);
 
 	for (auto elem : Elems) {
 
@@ -1748,7 +1776,7 @@ int CV8File::SaveBlockDataToBuffer(char **cur_pos, const char *pBlockData, UINT 
     if (PageSize < BlockDataSize)
         PageSize = BlockDataSize;
 
-    stBlockHeader CurBlockHeader = stBlockHeader::create(BlockDataSize, PageSize, V8_DEFAULT_PAGE_SIZE);
+    stBlockHeader CurBlockHeader = stBlockHeader::create(BlockDataSize, PageSize, V8_FF_SIGNATURE);
     memcpy(*cur_pos, (char*)&CurBlockHeader, stBlockHeader::Size());
     *cur_pos += stBlockHeader::Size();
 
