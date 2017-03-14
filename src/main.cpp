@@ -283,7 +283,7 @@ void read_param_file(const char *filename, vector< vector<string> > &list)
 			current_line.push_back(item);
 		}
 
-		while (current_line.size() < 3) {
+		while (current_line.size() < 5) {
 			// Дополним пустыми строками, чтобы избежать лишних проверок
 			current_line.push_back("");
 		}
