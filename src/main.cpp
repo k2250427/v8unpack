@@ -57,6 +57,8 @@ int usage(vector<string> &argv)
 	cout << "  -B[UILD] [-N[OPACK]] in_dirname         out_filename" << endl;
 	cout << "  -B[UILD] [-N[OPACK]] -L[IST] listfile" << endl;
 	cout << "  -L[IST]              listfile" << endl;
+	
+	cout << "  -LISTFILES|-LF       in_filename" << endl;
 
 	cout << "  -E[XAMPLE]" << endl;
 	cout << "  -BAT" << endl;
@@ -99,6 +101,12 @@ int pack(vector<string> &argv)
 int parse(vector<string> &argv)
 {
 	int ret = CV8File::Parse(argv[0], argv[1]);
+	return ret;
+}
+
+int list_files(vector<string> &argv)
+{
+	int ret = CV8File::ListFiles(argv[0]);
 	return ret;
 }
 
@@ -250,6 +258,10 @@ handler_t get_run_mode(const vector<string> &args, int &arg_base, bool &allow_li
 
 	if (cur_mode == "-list" || cur_mode == "-l") {
 		return process_list;
+	}
+
+	if (cur_mode == "-listfiles" || cur_mode == "-lf") {
+		return list_files;
 	}
 
 	return nullptr;

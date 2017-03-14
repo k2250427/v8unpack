@@ -154,6 +154,7 @@ public:
 	static int UnpackToFolder(const std::string &filename, const std::string &dirname, const std::string &block_name, bool print_progress = false);
 	static int UnpackToDirectoryNoLoad(const std::string &directory, std::basic_ifstream<char> &file, bool boolInflate = true, bool UnpackWhenNeed = false);
 	static int Parse(const std::string &filename, const std::string &dirname);
+	static int ListFiles(const std::string &filename);
 	static int SaveBlockDataToBuffer(char** Buffer, const char* pBlockData, UINT BlockDataSize, UINT PageSize = 512);
 	static bool IsV8File(const char *pFileData, ULONG FileDataSize);
 	static bool IsV8File(std::basic_ifstream<char> &file);

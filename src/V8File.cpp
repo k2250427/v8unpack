@@ -707,6 +707,69 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
     return ret;
 }
 
+int CV8File::ListFiles(const std::string &filename)
+{
+
+	boost::filesystem::ifstream file(filename, std::ios_base::binary);
+
+	if (!file) {
+		std::cerr << "ListFiles `" << filename << "`. Input file not found!" << std::endl;
+		return -1;
+	}
+
+	if (!IsV8File(file)) {
+		return V8UNPACK_NOT_V8_FILE;
+	}
+
+	stFileHeader FileHeader;
+	file.read((char*)&FileHeader, sizeof(FileHeader));
+
+	stBlockHeader BlockHeader;
+	stBlockHeader *pBlockHeader = &BlockHeader;
+
+	file.read((char*)&BlockHeader, sizeof(BlockHeader));
+
+	UINT ElemsAddrsSize;
+	stElemAddr *pElemsAddrs = nullptr;
+	ReadBlockData(file, pBlockHeader, (char*&)pElemsAddrs, &ElemsAddrsSize);
+
+	unsigned int ElemsNum = ElemsAddrsSize / stElemAddr::Size();
+
+	for (UINT i = 0; i < ElemsNum; i++) {
+
+		if (pElemsAddrs[i].fffffff != V8_FF_SIGNATURE) {
+			ElemsNum = i;
+			break;
+		}
+
+		file.seekg(pElemsAddrs[i].elem_header_addr, std::ios_base::beg);
+		file.read((char*)&BlockHeader, sizeof(BlockHeader));
+
+		if (pBlockHeader->EOL_0D != 0x0d ||
+				pBlockHeader->EOL_0A != 0x0a ||
+				pBlockHeader->space1 != 0x20 ||
+				pBlockHeader->space2 != 0x20 ||
+				pBlockHeader->space3 != 0x20 ||
+				pBlockHeader->EOL2_0D != 0x0d ||
+				pBlockHeader->EOL2_0A != 0x0a) {
+
+			continue;
+		}
+
+		CV8Elem elem;
+		ReadBlockData(file, pBlockHeader, elem.pHeader, &elem.HeaderSize);
+
+		char ElemName[512];
+		UINT ElemNameLen;
+
+		elem.GetName(ElemName, &ElemNameLen);
+
+		std::cout << ElemName << std::endl;
+	}
+
+	return 0;
+}
+
 int CV8File::UnpackToFolder(const std::string &filename_in, const std::string &dirname, const std::string &UnpackElemWithName, bool print_progress)
 {
 	int ret = 0;
