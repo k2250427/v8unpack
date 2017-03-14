@@ -207,8 +207,8 @@ public:
 
 };
 
-int Deflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest);
-int Inflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest);
+int Deflate(std::istream &source, std::ostream &dest);
+int Inflate(std::istream &source, std::ostream &dest);
 
 int Deflate(const std::string &in_filename, const std::string &out_filename);
 int Inflate(const std::string &in_filename, const std::string &out_filename);

@@ -28,6 +28,7 @@ at http://mozilla.org/MPL/2.0/.
 #include <iostream>
 #include <algorithm>
 #include <iterator>
+#include <memory>
 
 #ifndef MAX_PATH
 #define MAX_PATH (260)
@@ -81,24 +82,46 @@ CV8Elem::~CV8Elem()
 }
 
 
-
 int Inflate(const std::string &in_filename, const std::string &out_filename)
 {
     int ret;
 
-    boost::filesystem::path inf(in_filename);
-    boost::filesystem::ifstream in_file(inf, std::ios_base::binary);
+	std::shared_ptr<std::istream> input;
 
-    if (!in_file)
-        return V8UNPACK_INFLATE_IN_FILE_NOT_FOUND;
+	if (in_filename == "-") {
 
-    boost::filesystem::path ouf(out_filename);
-    boost::filesystem::ofstream out_file(ouf, std::ios_base::binary);
+		// считываем стандартный ввод
+		input.reset(&std::cin, [](...){});
 
-    if (!out_file)
-        return V8UNPACK_INFLATE_OUT_FILE_NOT_CREATED;
+	} else {
 
-    ret = Inflate(in_file, out_file);
+		boost::filesystem::path inf(in_filename);
+		input.reset(new boost::filesystem::ifstream(inf, std::ios_base::binary));
+
+		if (!*input) {
+			return V8UNPACK_DEFLATE_IN_FILE_NOT_FOUND;
+		}
+
+	}
+
+	std::shared_ptr<std::ostream> output;
+
+	if (out_filename == "-") {
+
+		// Выводим в стандартый вывод
+		output.reset(&std::cout, [](...){});
+
+	} else {
+
+		boost::filesystem::path ouf(out_filename);
+		output.reset(new boost::filesystem::ofstream (ouf, std::ios_base::binary));
+
+		if (!*output) {
+			return V8UNPACK_INFLATE_OUT_FILE_NOT_CREATED;
+		}
+	}
+
+    ret = Inflate(*input, *output);
 
     if (ret == Z_DATA_ERROR)
         return V8UNPACK_INFLATE_DATAERROR;
@@ -112,19 +135,42 @@ int Deflate(const std::string &in_filename, const std::string &out_filename)
 {
     int ret;
 
-    boost::filesystem::path inf(in_filename);
-    boost::filesystem::ifstream in_file(inf, std::ios_base::binary);
+	std::shared_ptr<std::istream> input;
 
-    if (!in_file)
-        return V8UNPACK_DEFLATE_IN_FILE_NOT_FOUND;
+	if (in_filename == "-") {
 
-    boost::filesystem::path ouf(out_filename);
-    boost::filesystem::ofstream out_file(ouf, std::ios_base::binary);
+		// считываем стандартный ввод
+		input.reset(&std::cin, [](...){});
 
-    if (!out_file)
-        return V8UNPACK_DEFLATE_OUT_FILE_NOT_CREATED;
+	} else {
 
-    ret = Deflate(in_file, out_file);
+		boost::filesystem::path inf(in_filename);
+		input.reset(new boost::filesystem::ifstream(inf, std::ios_base::binary));
+
+		if (!*input) {
+			return V8UNPACK_DEFLATE_IN_FILE_NOT_FOUND;
+		}
+
+	}
+
+	std::shared_ptr<std::ostream> output;
+
+	if (out_filename == "-") {
+
+		// Выводим в стандартый вывод
+		output.reset(&std::cout, [](...){});
+
+	} else {
+
+		boost::filesystem::path ouf(out_filename);
+		output.reset(new boost::filesystem::ofstream (ouf, std::ios_base::binary));
+
+		if (!*output) {
+			return V8UNPACK_INFLATE_OUT_FILE_NOT_CREATED;
+		}
+	}
+
+    ret = Deflate(*input, *output);
 
     if (ret)
         return V8UNPACK_DEFLATE_ERROR;
@@ -132,7 +178,7 @@ int Deflate(const std::string &in_filename, const std::string &out_filename)
     return 0;
 }
 
-int Deflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest)
+int Deflate(std::istream &source, std::ostream &dest)
 {
 
     int ret, flush;
@@ -189,7 +235,7 @@ int Deflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest)
     return Z_OK;
 
 }
-int Inflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest)
+int Inflate(std::istream &source, std::ostream &dest)
 {
     int ret;
     unsigned have;
