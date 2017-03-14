@@ -796,7 +796,8 @@ int CV8File::UnpackToFolder(const std::string &filename_in, const std::string &d
 
 	stFileHeader FileHeader;
 	file.read((char*)&FileHeader, sizeof(FileHeader));
-	{
+
+	if (!UnpackElemWithName.size()) {
 		boost::filesystem::path filename_out(dirname);
 		filename_out /= "FileHeader";
 		boost::filesystem::ofstream file_out(filename_out, std::ios_base::binary);
@@ -846,7 +847,7 @@ int CV8File::UnpackToFolder(const std::string &filename_in, const std::string &d
 		elem.GetName(ElemName, &ElemNameLen);
 
 		// если передано имя блока для распаковки, пропускаем все остальные
-		if (!UnpackElemWithName.empty() && UnpackElemWithName == ElemName)
+		if (!UnpackElemWithName.empty() && UnpackElemWithName != ElemName)
 			continue;
 
 		boost::filesystem::path filename_out;
