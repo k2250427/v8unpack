@@ -156,7 +156,7 @@ public:
 	static int UnpackToDirectoryNoLoad(
 		const std::string                &directory,
 		      std::basic_ifstream<char>  &file,
-		const std::vector< std::string>  &filter,
+		const std::vector<std::string>   &filter,
 		      bool                        boolInflate = true,
 		      bool                        UnpackWhenNeed = false
 	);

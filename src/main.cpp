@@ -102,7 +102,9 @@ int parse(vector<string> &argv)
 {
 	vector<string> filter;
 	for (size_t i = 2; i < argv.size(); i++) {
-		filter.push_back(argv[i]);
+		if (!argv[i].empty()) {
+			filter.push_back(argv[i]);
+		}
 	}
 	int ret = CV8File::Parse(argv[0], argv[1], filter);
 	return ret;

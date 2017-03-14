@@ -37,6 +37,18 @@ at http://mozilla.org/MPL/2.0/.
 using namespace std;
 
 
+
+template<typename T>
+void full_copy(basic_istream<T> &in_file, basic_ostream<T> &out_file)
+{
+	copy(
+			istreambuf_iterator<T>(in_file),
+			istreambuf_iterator<T>(),
+			ostreambuf_iterator<T>(out_file)
+	);
+}
+
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -579,19 +591,8 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
 
             if (ret) {
                 // Файл не распаковывается - записываем, как есть
-                inf.seekg(0, std::ios_base::beg);
-
-                do {
-
-                    const int block_size = 4096;
-                    char data[block_size]; // TODO: Оценить размер блока
-                    int data_size = inf.read(data, block_size).gcount();
-
-                    if (data_size != 0)
-                        out.write(data, data_size);
-
-                } while (inf);
-
+				inf.seekg(0, std::ios_base::beg);
+				full_copy(inf, out);
             }
 
             inf.close();
@@ -1176,16 +1177,6 @@ struct PackElementEntry {
 	size_t                   header_size;
 	size_t                   data_size;
 };
-
-template<typename T>
-void full_copy(std::basic_ifstream<T> &in_file, std::basic_ofstream<T> &out_file)
-{
-	std::copy(
-			std::istreambuf_iterator<T>(in_file),
-			std::istreambuf_iterator<T>(),
-			std::ostreambuf_iterator<T>(out_file)
-			);
-}
 
 int CV8File::PackFromFolder(const std::string &dirname, const std::string &filename_out)
 {
