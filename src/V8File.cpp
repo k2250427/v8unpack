@@ -34,6 +34,8 @@ at http://mozilla.org/MPL/2.0/.
 #define MAX_PATH (260)
 #endif
 
+using namespace std;
+
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -612,7 +614,8 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
         src.open(src_path, std::ios_base::binary);
 
         if (CV8File::IsV8File(src)) {
-            CV8File::UnpackToDirectoryNoLoad(elem_path.string(), src, false, false);
+			vector<string> empty_filter;
+			CV8File::UnpackToDirectoryNoLoad(elem_path.string(), src, empty_filter, false, false);
             src.close();
             boost::filesystem::remove(src_path);
         } else {
@@ -671,7 +674,13 @@ int SmartUnpack(std::basic_ifstream<char> &file, bool NeedUnpack, boost::filesys
 }
 //-- dmpas Затычка Issue6
 
-int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_ifstream<char> &file, bool boolInflate, bool UnpackWhenNeed)
+bool NameInFilter(const string &name, const vector<string> &filter)
+{
+	return filter.empty()
+		|| find(filter.begin(), filter.end(), name) != filter.end();
+}
+
+int CV8File::UnpackToDirectoryNoLoad(const string &directory, basic_ifstream<char> &file, const vector<string>  &filter, bool boolInflate, bool UnpackWhenNeed)
 {
     int ret = 0;
 
@@ -731,6 +740,10 @@ int CV8File::UnpackToDirectoryNoLoad(const std::string &directory, std::basic_if
         UINT ElemNameLen;
 
         elem.GetName(ElemName, &ElemNameLen);
+
+		if (!NameInFilter(string(ElemName), filter)) {
+			continue;
+		}
 
         boost::filesystem::path elem_path(p_dir / ElemName);
         elem_path = boost::filesystem::absolute(elem_path);
@@ -1295,21 +1308,21 @@ int CV8File::SaveBlockData(std::basic_ofstream<char> &file_out, const char *pBlo
 	return 0;
 }
 
-int CV8File::Parse(const std::string &filename_in, const std::string &dirname)
+int CV8File::Parse(const std::string &filename_in, const std::string &dirname, const std::vector< std::string > &filter)
 {
     int ret = 0;
 
     boost::filesystem::ifstream file_in(filename_in, std::ios_base::binary);
 
     if (!file_in) {
-        std::cerr << "UnpackToFolder. `" << filename_in << "` not found!" << std::endl;
+        std::cerr << "Parse. `" << filename_in << "` not found!" << std::endl;
         return -1;
     }
 
-    ret = UnpackToDirectoryNoLoad(dirname, file_in);
+    ret = UnpackToDirectoryNoLoad(dirname, file_in, filter);
 
     if (ret == V8UNPACK_NOT_V8_FILE) {
-        std::cerr << "UnpackToFolder. `" << filename_in << "` is not V8 file!" << std::endl;
+        std::cerr << "Parse. `" << filename_in << "` is not V8 file!" << std::endl;
         return ret;
     }
 

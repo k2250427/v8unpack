@@ -100,7 +100,11 @@ int pack(vector<string> &argv)
 
 int parse(vector<string> &argv)
 {
-	int ret = CV8File::Parse(argv[0], argv[1]);
+	vector<string> filter;
+	for (size_t i = 2; i < argv.size(); i++) {
+		filter.push_back(argv[i]);
+	}
+	int ret = CV8File::Parse(argv[0], argv[1], filter);
 	return ret;
 }
 

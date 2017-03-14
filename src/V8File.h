@@ -152,8 +152,21 @@ public:
 	static int SaveBlockData(std::basic_ofstream<char> &file_out, const char *pBlockData, UINT BlockDataSize, UINT PageSize = 512);
 	static int SaveBlockData(std::basic_ofstream<char> &file_out, std::basic_ifstream<char> &file_in, UINT BlockDataSize, UINT PageSize = 512);
 	static int UnpackToFolder(const std::string &filename, const std::string &dirname, const std::string &block_name, bool print_progress = false);
-	static int UnpackToDirectoryNoLoad(const std::string &directory, std::basic_ifstream<char> &file, bool boolInflate = true, bool UnpackWhenNeed = false);
-	static int Parse(const std::string &filename, const std::string &dirname);
+	
+	static int UnpackToDirectoryNoLoad(
+		const std::string                &directory,
+		      std::basic_ifstream<char>  &file,
+		const std::vector< std::string>  &filter,
+		      bool                        boolInflate = true,
+		      bool                        UnpackWhenNeed = false
+	);
+	
+	static int Parse(
+		const std::string                &filename,
+		const std::string                &dirname,
+		const std::vector< std::string > &filter
+	);
+
 	static int ListFiles(const std::string &filename);
 	static int SaveBlockDataToBuffer(char** Buffer, const char* pBlockData, UINT BlockDataSize, UINT PageSize = 512);
 	static bool IsV8File(const char *pFileData, ULONG FileDataSize);
