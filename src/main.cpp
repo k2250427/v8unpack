@@ -57,6 +57,8 @@ int usage(vector<string> &argv)
 	cout << "  -B[UILD] [-N[OPACK]] in_dirname         out_filename" << endl;
 	cout << "  -B[UILD] [-N[OPACK]] -L[IST] listfile" << endl;
 	cout << "  -L[IST]              listfile" << endl;
+	
+	cout << "  -LISTFILES|-LF       in_filename" << endl;
 
 	cout << "  -E[XAMPLE]" << endl;
 	cout << "  -BAT" << endl;
@@ -98,7 +100,19 @@ int pack(vector<string> &argv)
 
 int parse(vector<string> &argv)
 {
-	int ret = CV8File::Parse(argv[0], argv[1]);
+	vector<string> filter;
+	for (size_t i = 2; i < argv.size(); i++) {
+		if (!argv[i].empty()) {
+			filter.push_back(argv[i]);
+		}
+	}
+	int ret = CV8File::Parse(argv[0], argv[1], filter);
+	return ret;
+}
+
+int list_files(vector<string> &argv)
+{
+	int ret = CV8File::ListFiles(argv[0]);
 	return ret;
 }
 
@@ -252,6 +266,10 @@ handler_t get_run_mode(const vector<string> &args, int &arg_base, bool &allow_li
 		return process_list;
 	}
 
+	if (cur_mode == "-listfiles" || cur_mode == "-lf") {
+		return list_files;
+	}
+
 	return nullptr;
 }
 
@@ -271,7 +289,7 @@ void read_param_file(const char *filename, vector< vector<string> > &list)
 			current_line.push_back(item);
 		}
 
-		while (current_line.size() < 3) {
+		while (current_line.size() < 5) {
 			// Дополним пустыми строками, чтобы избежать лишних проверок
 			current_line.push_back("");
 		}
