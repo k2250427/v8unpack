@@ -56,10 +56,10 @@ release: $(OUT_RELEASE) after_release
 $(OUT_RELEASE): bin/Release $(OBJ_RELEASE) $(DEP_RELEASE)
 	$(LD) $(LIBDIR_RELEASE) -o $(OUT_RELEASE) $(OBJ_RELEASE)  $(LDFLAGS_RELEASE) $(LIB_RELEASE)
 
-$(OBJDIR_RELEASE)/src/V8File.o: src/V8File.cpp
+$(OBJDIR_RELEASE)/src/V8File.o: src/V8File.cpp src/V8File.h
 	$(CXX) -D__LINUX $(CFLAGS_RELEASE) $(INC_RELEASE) -c src/V8File.cpp -o $(OBJDIR_RELEASE)/src/V8File.o
 
-$(OBJDIR_RELEASE)/src/main.o: src/main.cpp
+$(OBJDIR_RELEASE)/src/main.o: src/main.cpp src/V8File.h
 	$(CXX) -D__LINUX $(CFLAGS_RELEASE) $(INC_RELEASE) -c src/main.cpp -o $(OBJDIR_RELEASE)/src/main.o
 
 clean_release: 
