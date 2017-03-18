@@ -18,31 +18,46 @@ LIBDIR =
 LIB = -static -lz -lboost_filesystem -lboost_system
 LDFLAGS = 
 
-INC_RELEASE = $(INC)
-CFLAGS_RELEASE = $(CFLAGS) -O2
-RESINC_RELEASE = $(RESINC)
-RCFLAGS_RELEASE = $(RCFLAGS)
-LIBDIR_RELEASE = $(LIBDIR)
-LIB_RELEASE = $(LIB) 
-LDFLAGS_RELEASE = $(LDFLAGS) -s
-OBJDIR_RELEASE = obj/Release
-DEP_RELEASE = 
-OUT_RELEASE = bin/Release/v8unpack
+INC_V8UNPACK = $(INC)
+CFLAGS_V8UNPACK = $(CFLAGS) -O2
+RESINC_V8UNPACK = $(RESINC)
+RCFLAGS_V8UNPACK = $(RCFLAGS)
+LIBDIR_V8UNPACK = $(LIBDIR)
+LIB_V8UNPACK = $(LIB) 
+LDFLAGS_V8UNPACK = $(LDFLAGS) -s
+OBJDIR_V8UNPACK = obj/Release
+DEP_V8UNPACK = 
+OUT_V8UNPACK = bin/Release/v8unpack
 
-OBJ_RELEASE = $(OBJDIR_RELEASE)/src/v8unpack/V8File.o $(OBJDIR_RELEASE)/src/v8unpack/main.o
+INC_V8VERSIONS = $(INC)
+CFLAGS_V8VERSIONS = $(CFLAGS) -O2
+RESINC_V8VERSIONS = $(RESINC)
+RCFLAGS_V8VERSIONS = $(RCFLAGS)
+LIBDIR_V8VERSIONS = $(LIBDIR)
+LIB_V8VERSIONS = $(LIB) 
+LDFLAGS_V8VERSIONS = $(LDFLAGS) -s
+OBJDIR_V8VERSIONS = obj/Release
+DEP_V8VERSIONS = 
+OUT_V8VERSIONS = bin/Release/v8versions
+
+OBJ_V8UNPACK = $(OBJDIR_V8UNPACK)/src/v8unpack/V8File.o $(OBJDIR_V8UNPACK)/src/v8unpack/main.o
+OBJ_V8VERSIONS = $(OBJDIR_V8VERSIONS)/src/v8versions/versions.o $(OBJDIR_V8VERSIONS)/src/v8versions/main.o
+
 PREFIX=$(DESTDIR)/usr/bin
 BASH_COMPLETION_PREFIX=$(DESTDIR)/etc/bash_completion.d
 
-all: release
+all: v8unpack v8versions
 
-install: $(OUT_RELEASE)
+install: $(OUT_V8UNPACK) $(OUT_V8VERSIONS)
 	test -d $(PREFIX) || mkdir -p $(PREFIX)
 	cp bin/Release/v8unpack $(PREFIX)/v8unpack
+	cp bin/Release/v8versions $(PREFIX)/v8versions
 	test -d $(BASH_COMPLETION_PREFIX) || mkdir -p $(BASH_COMPLETION_PREFIX)
 	cp bash_completion.sh $(BASH_COMPLETION_PREFIX)/v8unpack
 
 uninstall:
 	rm $(PREFIX)/v8unpack
+	rm $(PREFIX)/v8versions
 	rm $(BASH_COMPLETION_PREFIX)/v8unpack
 
 clean: clean_release
@@ -51,25 +66,36 @@ before_release: bin/Release
 
 bin/Release:
 	test -d bin/Release || mkdir -p bin/Release
-	test -d $(OBJDIR_RELEASE)/src/v8unpack || mkdir -p $(OBJDIR_RELEASE)/src/v8unpack
+	test -d $(OBJDIR_V8UNPACK)/src/v8unpack || mkdir -p $(OBJDIR_V8UNPACK)/src/v8unpack
+	test -d $(OBJDIR_V8VERSIONS)/src/v8versions || mkdir -p $(OBJDIR_V8VERSIONS)/src/v8versions
 
-after_release: 
+v8unpack: $(OUT_V8UNPACK)
 
-release: $(OUT_RELEASE) after_release
+v8versions: $(OUT_V8VERSIONS)
 
-$(OUT_RELEASE): bin/Release $(OBJ_RELEASE) $(DEP_RELEASE)
-	$(LD) $(LIBDIR_RELEASE) -o $(OUT_RELEASE) $(OBJ_RELEASE)  $(LDFLAGS_RELEASE) $(LIB_RELEASE)
+$(OUT_V8UNPACK): bin/Release $(OBJ_V8UNPACK) $(DEP_V8UNPACK)
+	$(LD) $(LIBDIR_V8UNPACK) -o $(OUT_V8UNPACK) $(OBJ_V8UNPACK)  $(LDFLAGS_V8UNPACK) $(LIB_V8UNPACK)
 
-$(OBJDIR_RELEASE)/src/v8unpack/V8File.o: src/v8unpack/V8File.cpp src/v8unpack/V8File.h
-	$(CXX) -D__LINUX $(CFLAGS_RELEASE) $(INC_RELEASE) -c src/v8unpack/V8File.cpp -o $(OBJDIR_RELEASE)/src/v8unpack/V8File.o
+$(OBJDIR_V8UNPACK)/src/v8unpack/V8File.o: src/v8unpack/V8File.cpp src/v8unpack/V8File.h
+	$(CXX) -D__LINUX $(CFLAGS_V8UNPACK) $(INC_V8UNPACK) -c $< -o $@
 
-$(OBJDIR_RELEASE)/src/v8unpack/main.o: src/v8unpack/main.cpp src/v8unpack/V8File.h
-	$(CXX) -D__LINUX $(CFLAGS_RELEASE) $(INC_RELEASE) -c src/v8unpack/main.cpp -o $(OBJDIR_RELEASE)/src/v8unpack/main.o
+$(OBJDIR_V8UNPACK)/src/v8unpack/main.o: src/v8unpack/main.cpp src/v8unpack/V8File.h
+	$(CXX) -D__LINUX $(CFLAGS_V8UNPACK) $(INC_V8UNPACK) -c $< -o $@
+
+$(OUT_V8VERSIONS): bin/Release $(OBJ_V8VERSIONS) $(DEP_V8VERSIONS)
+	$(LD) $(LIBDIR_V8VERSIONS) -o $(OUT_V8VERSIONS) $(OBJ_V8VERSIONS)  $(LDFLAGS_V8VERSIONS) $(LIB_V8VERSIONS)
+
+$(OBJDIR_V8VERSIONS)/src/v8versions/versions.o: src/v8versions/versions.cxx src/v8versions/versions.hxx
+	$(CXX) -D__LINUX $(CFLAGS_V8VERSIONS) $(INC_V8VERSIONS) -c $< -o $@
+
+$(OBJDIR_V8VERSIONS)/src/v8versions/main.o: src/v8versions/main.cxx src/v8versions/versions.hxx
+	$(CXX) -D__LINUX $(CFLAGS_V8VERSIONS) $(INC_V8VERSIONS) -c $< -o $@
 
 clean_release: 
-	rm -f $(OBJ_RELEASE) $(OUT_RELEASE)
+	rm -f $(OBJ_V8UNPACK) $(OUT_V8UNPACK)
 	rm -rf bin/Release
-	rm -rf $(OBJDIR_RELEASE)/src
+	rm -rf $(OBJDIR_V8UNPACK)/src
+	rm -rf $(OBJDIR_V8VERSIONS)/src
 
-.PHONY: before_release after_release clean_release install uninstall
+.PHONY: before_release clean_release install uninstall v8unpack v8verions
 

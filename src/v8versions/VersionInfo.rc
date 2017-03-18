@@ -1,0 +1,24 @@
+1 VERSIONINFO
+FILEVERSION     3,0,41,1
+PRODUCTVERSION  3,0,41,1
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "041904E3"
+    BEGIN
+      VALUE "CompanyName", "V8Unpack developers community"
+      VALUE "FileDescription", "V8 Version Tool"
+      VALUE "FileVersion", "3.0.41"
+      VALUE "InternalName", "v8versions"
+      VALUE "LegalCopyright", "Sergey Batanov"
+      VALUE "OriginalFilename", "v8versions.exe"
+      VALUE "ProductName", "V8 Versions Tool"
+      VALUE "ProductVersion", "3.0.41"
+    END
+  END
+
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x419, 1251
+  END
+END

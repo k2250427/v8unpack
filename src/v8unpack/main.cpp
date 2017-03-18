@@ -21,7 +21,7 @@ at http://mozilla.org/MPL/2.0/.
 //
 
 #include "V8File.h"
-#include "version.h"
+#include "../version.h"
 #include <iostream>
 #include <algorithm>
 #include <sstream>
