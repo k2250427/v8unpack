@@ -31,15 +31,19 @@ OUT_RELEASE = bin/Release/v8unpack
 
 OBJ_RELEASE = $(OBJDIR_RELEASE)/src/V8File.o $(OBJDIR_RELEASE)/src/main.o
 PREFIX=$(DESTDIR)/usr/bin
+BASH_COMPLETION_PREFIX=$(DESTDIR)/etc/bash_completion.d
 
 all: release
 
-install:
+install: $(OUT_RELEASE)
 	test -d $(PREFIX) || mkdir -p $(PREFIX)
 	cp bin/Release/v8unpack $(PREFIX)/v8unpack
+	test -d $(BASH_COMPLETION_PREFIX) || mkdir -p $(BASH_COMPLETION_PREFIX)
+	cp bash_completion.sh $(BASH_COMPLETION_PREFIX)/v8unpack
 
 uninstall:
 	rm $(PREFIX)/v8unpack
+	rm $(BASH_COMPLETION_PREFIX)/v8unpack
 
 clean: clean_release
 
@@ -56,10 +60,10 @@ release: $(OUT_RELEASE) after_release
 $(OUT_RELEASE): bin/Release $(OBJ_RELEASE) $(DEP_RELEASE)
 	$(LD) $(LIBDIR_RELEASE) -o $(OUT_RELEASE) $(OBJ_RELEASE)  $(LDFLAGS_RELEASE) $(LIB_RELEASE)
 
-$(OBJDIR_RELEASE)/src/V8File.o: src/V8File.cpp
+$(OBJDIR_RELEASE)/src/V8File.o: src/V8File.cpp src/V8File.h
 	$(CXX) -D__LINUX $(CFLAGS_RELEASE) $(INC_RELEASE) -c src/V8File.cpp -o $(OBJDIR_RELEASE)/src/V8File.o
 
-$(OBJDIR_RELEASE)/src/main.o: src/main.cpp
+$(OBJDIR_RELEASE)/src/main.o: src/main.cpp src/V8File.h
 	$(CXX) -D__LINUX $(CFLAGS_RELEASE) $(INC_RELEASE) -c src/main.cpp -o $(OBJDIR_RELEASE)/src/main.o
 
 clean_release: 

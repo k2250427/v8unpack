@@ -1,7 +1,7 @@
 /*----------------------------------------------------------
-This Source Code Form is subject to the terms of the 
-Mozilla Public License, v.2.0. If a copy of the MPL 
-was not distributed with this file, You can obtain one 
+This Source Code Form is subject to the terms of the
+Mozilla Public License, v.2.0. If a copy of the MPL
+was not distributed with this file, You can obtain one
 at http://mozilla.org/MPL/2.0/.
 ----------------------------------------------------------*/
 /////////////////////////////////////////////////////////////////////////////
@@ -39,6 +39,7 @@ at http://mozilla.org/MPL/2.0/.
 #include <stdint.h>
 #include <vector>
 #include <boost/shared_array.hpp>
+#include <boost/filesystem.hpp>
 
 typedef uint32_t UINT;
 typedef uint32_t DWORD;
@@ -131,13 +132,24 @@ public:
 		{
 			return 1 + 1 + 8 + 1 + 8 + 1 + 8 + 1 + 1 + 1;
 		};
+
+		bool IsCorrect() const
+		{
+			return EOL_0D == 0x0d
+				&& EOL_0A == 0x0a
+				&& space1 == 0x20
+				&& space2 == 0x20
+				&& space3 == 0x20
+				&& EOL2_0D == 0x0d
+				&& EOL2_0A == 0x0a;
+		}
 	};
 
 	int GetData(char **DataBufer, ULONG *DataBuferSize);
 	int Pack();
 	int LoadFileFromFolder(const std::string &dirname);
 	int LoadFile(char *pFileData, ULONG FileData, bool boolInflate = true, bool UnpackWhenNeed = false);
-	int SaveFileToFolder(const std::string &dirname) const;
+	int SaveFileToFolder(const boost::filesystem::path &directiory) const;
 
 	CV8File();
 	CV8File(char *pFileData, bool boolUndeflate = true);
@@ -149,17 +161,31 @@ public:
 
 	static int PackFromFolder(const std::string &dirname, const std::string &filename);
 	static int BuildCfFile(const std::string &dirname, const std::string &filename, bool dont_deflate = false);
-	static int SaveBlockData(std::basic_ofstream<char> &file_out, const char *pBlockData, UINT BlockDataSize, UINT PageSize = 512);
-	static int SaveBlockData(std::basic_ofstream<char> &file_out, std::basic_ifstream<char> &file_in, UINT BlockDataSize, UINT PageSize = 512);
+	static int SaveBlockData(std::basic_ostream<char> &file_out, const char *pBlockData, UINT BlockDataSize, UINT PageSize = 512);
+	static int SaveBlockData(std::basic_ostream<char> &file_out, std::basic_istream<char> &file_in, UINT BlockDataSize, UINT PageSize = 512);
 	static int UnpackToFolder(const std::string &filename, const std::string &dirname, const std::string &block_name, bool print_progress = false);
-	static int UnpackToDirectoryNoLoad(const std::string &directory, std::basic_ifstream<char> &file, bool boolInflate = true, bool UnpackWhenNeed = false);
-	static int Parse(const std::string &filename, const std::string &dirname);
+	
+	static int UnpackToDirectoryNoLoad(
+		const std::string                &directory,
+		      std::basic_istream<char>   &file,
+		const std::vector<std::string>   &filter,
+		      bool                        boolInflate = true,
+		      bool                        UnpackWhenNeed = false
+	);
+	
+	static int Parse(
+		const std::string                &filename,
+		const std::string                &dirname,
+		const std::vector< std::string > &filter
+	);
+
+	static int ListFiles(const std::string &filename);
 	static int SaveBlockDataToBuffer(char** Buffer, const char* pBlockData, UINT BlockDataSize, UINT PageSize = 512);
 	static bool IsV8File(const char *pFileData, ULONG FileDataSize);
-	static bool IsV8File(std::basic_ifstream<char> &file);
+	static bool IsV8File(std::basic_istream<char> &file);
 	static int ReadBlockData(char *pFileData, stBlockHeader *pBlockHeader, char *&pBlockData, UINT *BlockDataSize = NULL);
-	static int ReadBlockData(std::basic_ifstream<char> &file, stBlockHeader *pBlockHeader, char *&pBlockData, UINT *BlockDataSize = NULL);
-	static int ReadBlockData(std::basic_ifstream<char> &file, stBlockHeader *pBlockHeader, std::basic_ofstream<char> &out, UINT *BlockDataSize = NULL);
+	static int ReadBlockData(std::basic_istream<char> &file, stBlockHeader *pBlockHeader, char *&pBlockData, UINT *BlockDataSize = NULL);
+	static int ReadBlockData(std::basic_istream<char> &file, stBlockHeader *pBlockHeader, std::basic_ostream<char> &out, UINT *BlockDataSize = NULL);
 
 private:
 	stFileHeader                FileHeader;
@@ -190,13 +216,15 @@ public:
 	CV8Elem();
 	~CV8Elem();
 
-	int Pack(bool deflate = true);
-	int SetName(const char *ElemName, UINT ElemNameLen);
-	int GetName(char* ElemName, UINT *ElemNameLen) const;
+	int           Pack(bool deflate = true);
+	int           SetName(const std::string &ElemName);
+	std::string   GetName() const;
 
-	char               *pHeader; // TODO: Утечка памяти
+	void Dispose();
+
+	char               *pHeader;
 	UINT                HeaderSize;
-	char               *pData; // TODO: Утечка памяти
+	char               *pData;
 	UINT                DataSize;
 	CV8File             UnpackedData;
 	bool                IsV8File;
@@ -204,8 +232,8 @@ public:
 
 };
 
-int Deflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest);
-int Inflate(std::basic_ifstream<char> &source, std::basic_ofstream<char> &dest);
+int Deflate(std::istream &source, std::ostream &dest);
+int Inflate(std::istream &source, std::ostream &dest);
 
 int Deflate(const std::string &in_filename, const std::string &out_filename);
 int Inflate(const std::string &in_filename, const std::string &out_filename);
