@@ -5,9 +5,9 @@ set (v8unpack_VERSION_MAJOR 3)
 set (v8unpack_VERSION_MINOR 0)
 
 if(WIN32)
-	set(RC_FILE "VersionInfo.rc")
+	set(V8UNPACK_RC_FILE "src/v8unpack/VersionInfo.rc")
 else()
-	set(RC_FILE "")
+	set(V8UNPACK_RC_FILE "")
 endif()
 
 if(MSVC)
@@ -27,7 +27,7 @@ if(MSVC)
 endif()
 
 set(CMAKE_CXX_STANDARD 11)
-add_executable (v8unpack src/main.cpp src/V8File.cpp ${RC_FILE})
+add_executable (v8unpack src/v8unpack/main.cpp src/v8unpack/V8File.cpp ${V8UNPACK_RC_FILE})
 
 add_definitions (-DBOOST_ALL_NO_LIB)
 set (Boost_USE_STATIC_LIBS ON)
