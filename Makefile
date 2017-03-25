@@ -97,5 +97,5 @@ clean_release:
 	rm -rf $(OBJDIR_V8UNPACK)/src
 	rm -rf $(OBJDIR_V8VERSIONS)/src
 
-.PHONY: before_release clean_release install uninstall v8unpack v8verions
+.PHONY: before_release clean_release install uninstall v8unpack v8versions
 

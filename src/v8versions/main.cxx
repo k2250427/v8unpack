@@ -16,6 +16,7 @@ at http://mozilla.org/MPL/2.0/.
 #include <string>
 
 using namespace std;
+using namespace V8Unpack;
 
 int version()
 {
@@ -124,6 +125,28 @@ int main(int argc, char **argv)
 		++arg_base;
 
 		cout << versions.Get(inner_file_name) << endl;
+		return 0;
+	}
+
+	if (command == "diff") {
+		if (arg_base < argc) {
+			return usage();
+		}
+		string second_file_name(argv[arg_base]);
+		shared_ptr<istream> second_file;
+
+		if (second_file_name == "-") {
+			second_file.reset(&cin, [](...){} );
+		} else {
+			second_file.reset(new boost::filesystem::ifstream(second_file_name));
+		}
+
+		VersionsFile versions_2;
+		versions_2.LoadFile(*second_file);
+		second_file.reset();
+
+		++arg_base;
+
 		return 0;
 	}
 
