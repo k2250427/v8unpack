@@ -609,7 +609,7 @@ int SmartUnpack(std::basic_istream<char> &file, bool NeedUnpack, boost::filesyst
 
         if (CV8File::IsV8File(src)) {
 			vector<string> empty_filter;
-			CV8File::UnpackToDirectoryNoLoad(elem_path.string(), src, empty_filter, false, false);
+			CV8File::UnpackToDirectoryNoLoad(elem_path.string(), src, false, empty_filter, false, false);
             src.close();
             boost::filesystem::remove(src_path);
         } else {
@@ -674,7 +674,22 @@ bool NameInFilter(const string &name, const vector<string> &filter)
 		|| find(filter.begin(), filter.end(), name) != filter.end();
 }
 
-int CV8File::UnpackToDirectoryNoLoad(const string &directory, basic_istream<char> &file, const vector<string>  &filter, bool boolInflate, bool UnpackWhenNeed)
+static bool
+is_guid_like_name(const std::string &name)
+{
+	const std::string mask = "dddddddd-dddd-dddd-dddd-dddddddddddd";
+	if (name.size() < mask.size()) {
+		return false;
+	}
+	for (int i = 0; i < mask.size(); i++) {
+		if (mask[i] == '-' && name[i] != '-') {
+			return false;
+		}
+	}
+	return true;
+}
+
+int CV8File::UnpackToDirectoryNoLoad(const string &directory, basic_istream<char> &file, bool use_subdirs,  const vector<string>  &filter, bool boolInflate, bool UnpackWhenNeed)
 {
     int ret = 0;
 
@@ -730,6 +745,13 @@ int CV8File::UnpackToDirectoryNoLoad(const string &directory, basic_istream<char
 		}
 
         boost::filesystem::path elem_path(p_dir / ElemName);
+		if (use_subdirs && is_guid_like_name(ElemName)) {
+			auto subdir1 = ElemName.substr(0, 1);
+			auto subdir2 = ElemName.substr(1, 1);
+			boost::filesystem::create_directories(p_dir / subdir1 / subdir2);
+			auto tail   = ElemName.substr(2);
+			elem_path = p_dir / subdir1 / subdir2 / tail;
+		}
         elem_path = boost::filesystem::absolute(elem_path);
 
         //080228 Блока данных может не быть, тогда адрес блока данных равен 0x7fffffff
@@ -1236,7 +1258,10 @@ int CV8File::SaveBlockData(std::basic_ostream<char> &file_out, const char *pBloc
 	return 0;
 }
 
-int CV8File::Parse(const std::string &filename_in, const std::string &dirname, const std::vector< std::string > &filter)
+int CV8File::Parse(const std::string &filename_in,
+		const std::string &dirname,
+		bool use_subdirs,
+		const std::vector< std::string > &filter)
 {
     int ret = 0;
 
@@ -1247,7 +1272,7 @@ int CV8File::Parse(const std::string &filename_in, const std::string &dirname, c
         return -1;
     }
 
-    ret = UnpackToDirectoryNoLoad(dirname, file_in, filter);
+    ret = UnpackToDirectoryNoLoad(dirname, file_in, use_subdirs, filter);
 
     if (ret == V8UNPACK_NOT_V8_FILE) {
         std::cerr << "Parse. `" << filename_in << "` is not V8 file!" << std::endl;

@@ -52,7 +52,7 @@ int usage(vector<string> &argv)
 	cout << "  -I[NFLATE] -L[IST]   listfile" << endl;
 	cout << "  -D[EFLATE]           in_filename        filename.data" << endl;
 	cout << "  -D[EFLATE] -L[IST]   listfile" << endl;
-	cout << "  -P[ARSE]             in_filename        out_dirname [block_name1 block_name2 ...]" << endl;
+	cout << "  -P[ARSE] [-B[EAUTY]] in_filename        out_dirname [block_name1 block_name2 ...]" << endl;
 	cout << "  -P[ARSE]   -L[IST]   listfile" << endl;
 	cout << "  -B[UILD] [-N[OPACK]] in_dirname         out_filename" << endl;
 	cout << "  -B[UILD] [-N[OPACK]] -L[IST] listfile" << endl;
@@ -106,7 +106,19 @@ int parse(vector<string> &argv)
 			filter.push_back(argv[i]);
 		}
 	}
-	int ret = CV8File::Parse(argv[0], argv[1], filter);
+	int ret = CV8File::Parse(argv[0], argv[1], false, filter);
+	return ret;
+}
+
+int parse_in_subdirs(vector<string> &argv)
+{
+	vector<string> filter;
+	for (size_t i = 3; i < argv.size(); i++) {
+		if (!argv[i].empty()) {
+			filter.push_back(argv[i]);
+		}
+	}
+	int ret = CV8File::Parse(argv[0], argv[1], true, filter);
 	return ret;
 }
 
@@ -235,7 +247,18 @@ handler_t get_run_mode(const vector<string> &args, int &arg_base, bool &allow_li
 	}
 
 	if (cur_mode == "-parse" || cur_mode == "-p") {
-		return parse;
+
+		bool beautified = false;
+
+		if ((int)args.size() > arg_base) {
+			string arg2(args[arg_base]);
+			transform(arg2.begin(), arg2.end(), arg2.begin(), ::tolower);
+			if (arg2 == "-b" || arg2 == "-beauty") {
+				arg_base++;
+				beautified = true;
+			}
+		}
+		return beautified ? parse_in_subdirs : parse;
 	}
 
 	if (cur_mode == "-build" || cur_mode == "-b") {

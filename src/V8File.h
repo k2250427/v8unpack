@@ -168,7 +168,8 @@ public:
 	static int UnpackToDirectoryNoLoad(
 		const std::string                &directory,
 		      std::basic_istream<char>   &file,
-		const std::vector<std::string>   &filter,
+		      bool                        use_subdirs = false,
+		const std::vector<std::string>   &filter = {},
 		      bool                        boolInflate = true,
 		      bool                        UnpackWhenNeed = false
 	);
@@ -176,7 +177,8 @@ public:
 	static int Parse(
 		const std::string                &filename,
 		const std::string                &dirname,
-		const std::vector< std::string > &filter
+		      bool                        use_subdirs = false,
+		const std::vector< std::string > &filter = {}
 	);
 
 	static int ListFiles(const std::string &filename);
